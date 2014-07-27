@@ -40,7 +40,7 @@
 
 ;; interface
 (defn init-db [korma-db-def-map]
-  (->> korma-db-def-map kdb/create-db kdb/get-connection))
+  (->> korma-db-def-map kdb/create-db kdb/default-connection kdb/get-connection))
 
 
 (def ^:private aggregates {"count" fns/agg-count
