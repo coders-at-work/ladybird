@@ -1,18 +1,15 @@
 (ns ladybird.db.core
-    (:use [clojure.java.jdbc.deprecated :only (find-connection with-connection transaction)]
-          [ladybird.util.core :only (def-bindable)])
-    (:require [ladybird.db.bridge :as dbb]))
+    (:use [ladybird.util.core :only (def-bindable)])
+    (:require [ladybird.db.patch.korma :as dbk]))
 
-
-;; transaction
-(defmacro do-tx [connection & body]
-    `(if-not (find-connection)
-       (with-connection ~connection
-                        (transaction ~@body))
-       (transaction ~@body)))
 
 ;; connection map
-(def ^:private conn-map (atom {}))
+(def ^:private conn-map
+     "Each key is a name, the value is a map containing following keys:
+         :original-conn-def   --    the original connection definition map, which is specified by db users
+         :conn-def            --    the connection definition object, which is implemented by the underground db access framwork
+         :db-conn             --    the jdbc connection"
+     (atom {}))
 
 (defn- add-to-conn-map [name value]
        (reset! conn-map (assoc @conn-map name value)))
@@ -20,13 +17,22 @@
 (defn get-conn [name]
   (@conn-map name))
 
-;; current connection
-(def-bindable cur-conn nil)
+(defn get-db-conn [name]
+  (get-in @conn-map [name :db-conn]))
 
-(defmacro with-cur-conn-as [name & body]
+;; current connection
+(def ^:dynamic *cur-conn-name* nil)
+(defn get-cur-conn []
+  (get-conn *cur-conn-name*))
+(defn get-cur-db-conn []
+  (get-db-conn *cur-conn-name*))
+
+;(def-bindable cur-conn nil)
+
+#_(defmacro with-cur-conn-as [name & body]
   `(with-cur-conn (get-conn ~name)
                   ~@body))
 
 ;; db preparation
 (defn init-db [name db-def-map]
-  (->> (dbb/init-db db-def-map) (add-to-conn-map name)))
+  (->> (dbk/init-db db-def-map) (merge {:original-conn-def db-def-map}) (add-to-conn-map name)))

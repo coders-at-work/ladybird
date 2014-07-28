@@ -1,6 +1,6 @@
 (ns ladybird.db.dml
-    (:require [ladybird.db.bridge :as dbb])
-    )
+    (:require [ladybird.db.core :as dbc]
+              [ladybird.db.patch.korma :as dbk]))
 
 ;; access db
 (defn select
@@ -17,7 +17,8 @@
   ([table where]
     (select table where {}))
   ([table where {:keys [fields join aggregate] :as spec}]
-    (dbb/select table where spec)))
+    (let [spec (->> (dbc/get-cur-conn) :conn-def :options (assoc spec :db-options))]
+      (dbk/select table where spec))))
 
 (defn insert!
   "insert database record 
@@ -29,7 +30,7 @@
   ([table data]
    (insert! table data {}))
   ([table data {:keys [fields] :as spec}]
-    (dbb/insert! table data spec)))
+    (dbk/insert! table data spec)))
 
 (defn update!
   "update database record
@@ -43,4 +44,4 @@
   ([table datum where]
    (update! table datum where {}))
   ([table datum where {:keys [fields] :as spec}]
-    (dbb/update! table datum where spec)))
+    (dbk/update! table datum where spec)))

@@ -40,8 +40,8 @@
 
 ;; interface
 (defn init-db [korma-db-def-map]
-  (->> korma-db-def-map kdb/create-db kdb/default-connection kdb/get-connection))
-
+  (let [conn (->> korma-db-def-map kdb/create-db)]
+    {:conn-def conn :db-conn (kdb/get-connection conn)}))
 
 (def ^:private aggregates {"count" fns/agg-count
                            "min" fns/agg-min
@@ -55,12 +55,14 @@
 (defn- parse-aggregate [[[function-name field] alias]]
        #(kc/fields % [((aggregates (name function-name)) % field) alias]))
 
-(defn select [ent where-clause {:keys [fields converters join aggregate] :as spec}]
+(defn select [ent where-clause {:keys [fields converters join aggregate db-options] :as spec}]
   (let [where-fn (if-not (empty? where-clause) #(where % where-clause) identity)
         fields-fn (if fields #(apply kc/fields % fields) identity)
         aggregate-fn (if aggregate (parse-aggregate aggregate) identity)
-        complete-query-fn (comp fields-fn where-fn aggregate-fn)]
-    (-> (kc/select* ent) complete-query-fn kc/select)))
+        complete-query-fn (comp fields-fn where-fn aggregate-fn)
+        add-options-fn #(if db-options (assoc % :options db-options) %)
+        ]
+    (-> (kc/select* ent) complete-query-fn add-options-fn kc/select)))
 
 (defn insert! [ent data {:keys [fields converters] :as spec}]
   (kc/insert ent (kc/values data)))
