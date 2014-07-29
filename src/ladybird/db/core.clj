@@ -23,11 +23,16 @@
 ;; current connection
 (def ^:dynamic *cur-conn-name* nil)
 
+(defn cur-conn-name
+  "Get the current db connection name. If *cur-conn-name* has been bound, return it; otherwise, return the main db connection name."
+  []
+  (or *cur-conn-name* :main))
+
 (defn get-cur-conn []
-  (get-conn *cur-conn-name*))
+  (get-conn (cur-conn-name)))
 
 (defn get-cur-db-conn []
-  (get-db-conn *cur-conn-name*))
+  (get-db-conn (cur-conn-name)))
 
 ;(def-bindable cur-conn nil)
 
@@ -38,3 +43,6 @@
 ;; db preparation
 (defn init-db [name db-def-map]
   (->> (dbk/init-db db-def-map) (merge {:original-conn-def db-def-map}) (add-to-conn-map name)))
+
+(defn init-main-db [db-def-map]
+  (init-db :main db-def-map))
