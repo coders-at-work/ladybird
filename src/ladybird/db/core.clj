@@ -22,8 +22,10 @@
 
 ;; current connection
 (def ^:dynamic *cur-conn-name* nil)
+
 (defn get-cur-conn []
   (get-conn *cur-conn-name*))
+
 (defn get-cur-db-conn []
   (get-db-conn *cur-conn-name*))
 
