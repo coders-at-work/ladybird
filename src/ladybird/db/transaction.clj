@@ -14,3 +14,8 @@
   `(binding [*cur-conn-name* ~db-name]
             (do-tx (get-cur-db-conn)
                    ~@body)))
+
+;; non-transaction
+(defmacro non-tx [db-name & body]
+  `(binding [*cur-conn-name* ~db-name]
+            ~@body))
