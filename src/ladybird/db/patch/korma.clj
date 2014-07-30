@@ -55,22 +55,19 @@
 (defn- parse-aggregate [[[function-name field] alias]]
        #(kc/fields % [((aggregates (name function-name)) % field) alias]))
 
-(defn select [ent where-clause {:keys [fields converters join aggregate db] :as spec}]
-  (let [where-fn (if-not (empty? where-clause) #(where % where-clause) identity)
-        fields-fn (if fields #(apply kc/fields % fields) identity)
-        aggregate-fn (if aggregate (parse-aggregate aggregate) identity)
-        complete-query-fn (comp fields-fn where-fn aggregate-fn)
-        add-db-fn #(if db (assoc % :db db) %)
-        db-options (:options db)
-        add-options-fn #(if db-options (assoc % :options db-options) %)
-        ]
-    (-> (kc/select* ent) add-db-fn add-options-fn complete-query-fn kc/select)))
-
 (defn- make-db-fns [db]
        (let [add-db-fn #(if db (assoc % :db db) %)
              db-options (:options db)
              add-options-fn #(if db-options (assoc % :options db-options) %)]
          [add-db-fn add-options-fn]))
+
+(defn select [ent where-clause {:keys [fields converters join aggregate db] :as spec}]
+  (let [where-fn (if-not (empty? where-clause) #(where % where-clause) identity)
+        fields-fn (if fields #(apply kc/fields % fields) identity)
+        aggregate-fn (if aggregate (parse-aggregate aggregate) identity)
+        complete-query-fn (comp fields-fn where-fn aggregate-fn)
+        [add-db-fn add-options-fn] (make-db-fns db)]
+    (-> (kc/select* ent) add-db-fn add-options-fn complete-query-fn kc/exec)))
 
 (defn insert! [ent data {:keys [fields converters db] :as spec}]
   (let [[add-db-fn add-options-fn] (make-db-fns db)]

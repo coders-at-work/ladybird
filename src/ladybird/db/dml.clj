@@ -2,6 +2,9 @@
     (:require [ladybird.db.core :as dbc]
               [ladybird.db.patch.korma :as dbk]))
 
+(defn- assoc-spec-with-db [spec]
+       (->> (dbc/get-cur-conn) :conn-def (assoc spec :db)))
+
 ;; access db
 (defn select
   "database select operation
@@ -17,12 +20,7 @@
   ([table where]
     (select table where {}))
   ([table where {:keys [fields join aggregate] :as spec}]
-    (let [db (->> (dbc/get-cur-conn) :conn-def)
-          spec (assoc spec :db db)]
-      (dbk/select table where spec))))
-
-(defn- assoc-spec-with-db [spec]
-       (->> (dbc/get-cur-conn) :conn-def (assoc spec :db)))
+    (dbk/select table where (assoc-spec-with-db spec))))
 
 (defn insert!
   "insert database record 
