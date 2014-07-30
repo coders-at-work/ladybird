@@ -18,8 +18,7 @@
     (select table where {}))
   ([table where {:keys [fields join aggregate] :as spec}]
     (let [db (->> (dbc/get-cur-conn) :conn-def)
-          db-options (:options db)
-          spec (assoc spec :db db :db-options db-options)]
+          spec (assoc spec :db db)]
       (dbk/select table where spec))))
 
 (defn insert!

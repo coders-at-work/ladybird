@@ -55,12 +55,13 @@
 (defn- parse-aggregate [[[function-name field] alias]]
        #(kc/fields % [((aggregates (name function-name)) % field) alias]))
 
-(defn select [ent where-clause {:keys [fields converters join aggregate db db-options] :as spec}]
+(defn select [ent where-clause {:keys [fields converters join aggregate db] :as spec}]
   (let [where-fn (if-not (empty? where-clause) #(where % where-clause) identity)
         fields-fn (if fields #(apply kc/fields % fields) identity)
         aggregate-fn (if aggregate (parse-aggregate aggregate) identity)
         complete-query-fn (comp fields-fn where-fn aggregate-fn)
         add-db-fn #(if db (assoc % :db db) %)
+        db-options (:options db)
         add-options-fn #(if db-options (assoc % :options db-options) %)
         ]
     (-> (kc/select* ent) complete-query-fn add-db-fn add-options-fn kc/select)))
