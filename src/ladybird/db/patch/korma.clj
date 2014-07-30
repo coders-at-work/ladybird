@@ -64,7 +64,7 @@
         db-options (:options db)
         add-options-fn #(if db-options (assoc % :options db-options) %)
         ]
-    (-> (kc/select* ent) complete-query-fn add-db-fn add-options-fn kc/select)))
+    (-> (kc/select* ent) add-db-fn add-options-fn complete-query-fn kc/select)))
 
 (defn insert! [ent data {:keys [fields converters] :as spec}]
   (kc/insert ent (kc/values data)))
