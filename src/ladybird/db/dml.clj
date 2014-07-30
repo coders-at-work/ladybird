@@ -21,6 +21,9 @@
           spec (assoc spec :db db)]
       (dbk/select table where spec))))
 
+(defn- assoc-spec-with-db [spec]
+       (->> (dbc/get-cur-conn) :conn-def (assoc spec :db)))
+
 (defn insert!
   "insert database record 
    Args:
@@ -31,7 +34,7 @@
   ([table data]
    (insert! table data {}))
   ([table data {:keys [fields] :as spec}]
-    (dbk/insert! table data spec)))
+    (dbk/insert! table data (assoc-spec-with-db spec))))
 
 (defn update!
   "update database record

@@ -66,8 +66,15 @@
         ]
     (-> (kc/select* ent) add-db-fn add-options-fn complete-query-fn kc/select)))
 
-(defn insert! [ent data {:keys [fields converters] :as spec}]
-  (kc/insert ent (kc/values data)))
+(defn- make-db-fns [db]
+       (let [add-db-fn #(if db (assoc % :db db) %)
+             db-options (:options db)
+             add-options-fn #(if db-options (assoc % :options db-options) %)]
+         [add-db-fn add-options-fn]))
+
+(defn insert! [ent data {:keys [fields converters db] :as spec}]
+  (let [[add-db-fn add-options-fn] (make-db-fns db)]
+    (-> (kc/insert* ent) add-db-fn add-options-fn (kc/values data) kc/exec)))
 
 (defn update! [ent datum where-clause {:keys [fields converters] :as spec}]
   (-> (update ent (kc/set-fields datum) (where where-clause))
