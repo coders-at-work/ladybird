@@ -47,3 +47,16 @@
    (update! table datum where {}))
   ([table datum where {:keys [fields] :as spec}]
     (dbk/update! table datum where (assoc-spec-with-db spec))))
+
+(defn delete!
+  "delete database record
+   Args:
+       table -- see also 'select' 
+       where -- see also 'select' 
+       spec -- see also 'select'
+   Return:
+       nil" 
+  ([table where]
+   (delete! table where {}))
+  ([table where {:keys [fields] :as spec}]
+   (dbk/delete! table where (assoc-spec-with-db spec))))
