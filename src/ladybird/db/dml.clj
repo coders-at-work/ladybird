@@ -46,4 +46,4 @@
   ([table datum where]
    (update! table datum where {}))
   ([table datum where {:keys [fields] :as spec}]
-    (dbk/update! table datum where spec)))
+    (dbk/update! table datum where (assoc-spec-with-db spec))))
