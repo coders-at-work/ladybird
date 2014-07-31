@@ -71,7 +71,7 @@
 
 (defn insert! [ent data {:keys [fields converters db] :as spec}]
   (let [[add-db-fn add-options-fn] (make-db-fns db)]
-    (-> (kc/insert* ent) add-db-fn add-options-fn (kc/values data) kc/exec)))
+    (-> (kc/insert* ent) add-db-fn add-options-fn (kc/values data) kc/exec :GENERATED_KEY)))
 
 (defn update! [ent datum where-clause {:keys [fields converters db] :as spec}]
   (let [[add-db-fn add-options-fn] (make-db-fns db)]
