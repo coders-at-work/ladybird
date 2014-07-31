@@ -44,7 +44,7 @@
 
 ;; load stories
 (defn load-stories-on-db
-  "Load story namespaces on the specified db connecton."
+  "Load story namespaces on the specified db connecton. Require the story namespaces with db connection binding to the specified db name."
   [db-name story-ns & story-nses]
   (binding [*default-db-name* db-name]
            (apply require story-ns story-nses)))
