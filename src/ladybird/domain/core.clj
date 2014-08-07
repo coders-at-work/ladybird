@@ -1,19 +1,38 @@
 (ns ladybird.domain.core
-    (:require [ladybird.util.string :as str])
-    )
+    (:require [ladybird.util.string :as str]
+              ))
 
 ;; domain meta preparing functions
+(defn to-clj-name [domain-name]
+  (str/camel-case-to-clj-case domain-name))
+
 (defn prepare-table-name [{:keys [domain-name table-name] :as domain-meta}]
   (assoc domain-meta
          :table-name
          (or table-name
-             (-> (str/camel-case-to-clj-case domain-name) str/hyphen-to-underscore))))
+             (-> (to-clj-name domain-name) str/hyphen-to-underscore))))
 
+(defn prepare-crud-fn-names [{:keys [domain-name table-name] :as domain-meta}]
+  (let [clj-name (to-clj-name domain-name)
+        query-fn-name (str "query-" clj-name)
+        ]
+    (assoc domain-meta :query-fn-name query-fn-name)
+    )
+  )
+
+;; domain generating functions
+(defn generate-domain [{:keys [domain-name] :as domain-meta}]
+  `(def ~(symbol domain-name) ~domain-meta)
+  )
 
 ;; define domain
-(def default-prepare-fns [prepare-table-name])
+(def default-prepare-fns [prepare-table-name prepare-crud-fn-names])
+
+(def default-generate-fns [generate-domain])
 
 (def ^:dynamic *prepare-fns* default-prepare-fns)
+
+(def ^:dynamic *generate-fns* default-generate-fns)
 
 (defmacro defdomain
   ([domain-name fields]
@@ -22,8 +41,11 @@
    (let [domain-meta (merge {:domain-name (name domain-name) :fields fields} meta-data)
          prepare-fn (->> (reverse *prepare-fns*) (apply comp))
          domain-meta (prepare-fn domain-meta)
+         body (map #(% domain-meta) *generate-fns*)
          ]
      `(do
-        (def ~domain-name ~domain-meta)))
+        ~@body
+        ;~(generate-domain domain-meta)
+        #_(def ~domain-name ~domain-meta)))
    )
   )
