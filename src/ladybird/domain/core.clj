@@ -16,9 +16,15 @@
 (defn prepare-crud-fn-names [{:keys [domain-name table-name] :as domain-meta}]
   (let [clj-name (to-clj-name domain-name)
         query-fn-name (str "query-" clj-name)
+        query-fn-doc-string (str "query " clj-name " by condition ")
+        get-by-fn-name (str "get-" clj-name "-by")
+        get-by-fn-doc-string (str "get one " clj-name " by condition ")
+        get-fn-name (str "get-" clj-name)
+        get-fn-doc-string (str "get one " clj-name " by primary key ")
         ]
-    (assoc domain-meta :query-fn-name query-fn-name)
-    )
+    (assoc domain-meta :query-fn-name query-fn-name :query-fn-doc-string query-fn-doc-string
+                       :get-by-fn-name get-by-fn-name :get-by-fn-doc-string get-by-fn-doc-string
+                       :get-fn-name get-fn-name :get-fn-doc-string get-fn-doc-string))
   )
 
 ;; domain generating functions
@@ -26,17 +32,25 @@
   `(def ~(symbol domain-name) ~domain-meta)
   )
 
-(defn generate-query-fn [{:keys [table-name fields query-fn-name] :as domain-meta}]
+(defn generate-query-fn [{:keys [table-name fields query-fn-name query-fn-doc-string] :as domain-meta}]
   (let [query-fn (symbol query-fn-name)
         query-spec {:fields fields}
         ]
-    `(defn ~query-fn [condition# ]
+    `(defn ~query-fn ~query-fn-doc-string [condition# ]
        (impl/query ~table-name condition# ~query-spec))))
+
+(defn generate-get-by-fn [{:keys [query-fn-name get-by-fn-name get-by-fn-doc-string] :as domain-meta}]
+  (let [query-fn (symbol query-fn-name)
+        get-by-fn (symbol get-by-fn-name)]
+    `(defn ~get-by-fn ~get-by-fn-doc-string [condition#]
+       (first (~query-fn condition#))
+       ))
+  )
 
 ;; define domain
 (def default-prepare-fns [prepare-table-name prepare-crud-fn-names])
 
-(def default-generate-fns [generate-domain generate-query-fn])
+(def default-generate-fns [generate-domain generate-query-fn generate-get-by-fn])
 
 (def ^:dynamic *prepare-fns* default-prepare-fns)
 
