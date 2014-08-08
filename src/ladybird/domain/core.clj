@@ -1,5 +1,6 @@
 (ns ladybird.domain.core
     (:require [ladybird.util.string :as str]
+              [ladybird.domain.impl :as impl]
               ))
 
 ;; domain meta preparing functions
@@ -25,10 +26,17 @@
   `(def ~(symbol domain-name) ~domain-meta)
   )
 
+(defn generate-query-fn [{:keys [table-name fields query-fn-name] :as domain-meta}]
+  (let [query-fn (symbol query-fn-name)
+        query-spec {:fields fields}
+        ]
+    `(defn ~query-fn [condition# ]
+       (impl/query ~table-name condition# ~query-spec))))
+
 ;; define domain
 (def default-prepare-fns [prepare-table-name prepare-crud-fn-names])
 
-(def default-generate-fns [generate-domain])
+(def default-generate-fns [generate-domain generate-query-fn])
 
 (def ^:dynamic *prepare-fns* default-prepare-fns)
 
