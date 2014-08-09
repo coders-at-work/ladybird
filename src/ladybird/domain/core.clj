@@ -22,9 +22,9 @@
         get-fn-name (str "get-" clj-name)
         get-fn-doc-string (str "get one " clj-name " by primary key ")
         ]
-    (assoc domain-meta :query-fn-name query-fn-name :query-fn-doc-string query-fn-doc-string
-                       :get-by-fn-name get-by-fn-name :get-by-fn-doc-string get-by-fn-doc-string
-                       :get-fn-name get-fn-name :get-fn-doc-string get-fn-doc-string))
+    (assoc domain-meta :query-fn-meta [query-fn-name query-fn-doc-string]
+                       :get-by-fn-meta [get-by-fn-name get-by-fn-doc-string]
+                       :get-fn-meta [get-fn-name get-fn-doc-string]))
   )
 
 ;; domain generating functions
@@ -32,23 +32,28 @@
   `(def ~(symbol domain-name) ~domain-meta)
   )
 
-(defn generate-query-fn [{:keys [table-name fields query-fn-name query-fn-doc-string] :as domain-meta}]
-  (let [query-fn (symbol query-fn-name)
+(defn generate-query-fn [{:keys [table-name fields query-fn-meta] :as domain-meta}]
+  (let [[query-fn-name query-fn-doc-string] query-fn-meta
+        query-fn (symbol query-fn-name)
         query-spec {:fields fields}
         ]
     `(defn ~query-fn ~query-fn-doc-string [condition# ]
        (impl/query ~table-name condition# ~query-spec))))
 
-(defn generate-get-by-fn [{:keys [query-fn-name get-by-fn-name get-by-fn-doc-string] :as domain-meta}]
-  (let [query-fn (symbol query-fn-name)
+(defn generate-get-by-fn [{:keys [query-fn-meta get-by-fn-meta] :as domain-meta}]
+  (let [[query-fn-name] query-fn-meta
+        [get-by-fn-name get-by-fn-doc-string] get-by-fn-meta
+        query-fn (symbol query-fn-name)
         get-by-fn (symbol get-by-fn-name)]
     `(defn ~get-by-fn ~get-by-fn-doc-string [condition#]
        (first (~query-fn condition#))
        )))
 
-(defn generate-get-fn [{:keys [primary-key get-by-fn-name get-fn-name get-fn-doc-string] :as domain-meta}]
+(defn generate-get-fn [{:keys [primary-key get-by-fn-meta get-fn-meta] :as domain-meta}]
   (when primary-key
-    (let [get-by-fn (symbol get-by-fn-name)
+    (let [[get-by-fn-name] get-by-fn-meta
+          [get-fn-name get-fn-doc-string] get-fn-meta
+          get-by-fn (symbol get-by-fn-name)
           get-fn (symbol get-fn-name)
           ]
       `(defn ~get-fn ~get-fn-doc-string [pk#]
