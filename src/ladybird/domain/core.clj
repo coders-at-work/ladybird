@@ -64,11 +64,26 @@
 
 (def ^:dynamic *generate-fns* default-generate-fns)
 
+(defn create-meta
+  "Create meta data from arguments of defdomain. Default meta keys include:
+   :domain-name
+   :fields
+   :primary-key
+   "
+  [domain-name fields meta-data]
+  (merge {:domain-name (name domain-name)
+          :fields fields
+          :primary-key (when (some #{:id} fields) :id)
+          }
+         meta-data))
+
+(def ^:dynamic *create-meta* create-meta)
+
 (defmacro defdomain
   ([domain-name fields]
    `(defdomain ~domain-name ~fields {}))
   ([domain-name fields meta-data]
-   (let [domain-meta (merge {:domain-name (name domain-name) :fields fields} meta-data)
+   (let [domain-meta (*create-meta* domain-name fields meta-data)
          prepare-fn (->> (reverse *prepare-fns*) (apply comp))
          domain-meta (prepare-fn domain-meta)
          body (map #(% domain-meta) *generate-fns*)
