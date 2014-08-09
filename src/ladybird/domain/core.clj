@@ -44,13 +44,21 @@
         get-by-fn (symbol get-by-fn-name)]
     `(defn ~get-by-fn ~get-by-fn-doc-string [condition#]
        (first (~query-fn condition#))
-       ))
-  )
+       )))
+
+(defn generate-get-fn [{:keys [primary-key get-by-fn-name get-fn-name get-fn-doc-string] :as domain-meta}]
+  (when primary-key
+    (let [get-by-fn (symbol get-by-fn-name)
+          get-fn (symbol get-fn-name)
+          ]
+      `(defn ~get-fn ~get-fn-doc-string [pk#]
+         (~get-by-fn (list '~'= ~primary-key pk#))
+         ))))
 
 ;; define domain
 (def default-prepare-fns [prepare-table-name prepare-crud-fn-names])
 
-(def default-generate-fns [generate-domain generate-query-fn generate-get-by-fn])
+(def default-generate-fns [generate-domain generate-query-fn generate-get-by-fn generate-get-fn])
 
 (def ^:dynamic *prepare-fns* default-prepare-fns)
 
