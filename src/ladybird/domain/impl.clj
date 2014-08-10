@@ -5,16 +5,14 @@
               ))
 
 ;; convert db record related
-(defn- clj-case-to-db-case [s]
-       (-> s string/lower-case str/hyphen-to-underscore))
-
 (defn- domain-field-to-db-field [field]
-       (-> (name field) clj-case-to-db-case keyword))
+       (-> (name field) str/clj-case-to-db-case keyword))
 
 (defn make-select-fields
   "Translate domain fields definition to sql select [db-field alias] pairs. A field is a keyword."
   [& fields]
-  (reduce (fn [ret domain-field]
+  (map #(vector (domain-field-to-db-field %) %) fields)
+  #_(reduce (fn [ret domain-field]
               (conj ret [(domain-field-to-db-field domain-field) domain-field]))
           [] fields))
 
@@ -30,14 +28,29 @@
 (defn query
   ""
   ([table condition]
-   (query table condition {}))
+   (query table {} condition))
   ;; TODO use converters to translate condition, ex. for boolean values
-  ([table condition {:keys [fields converters aggregate join] :as query-spec}]
-         (let [spec (create-select-spec query-spec) #_(if-not (empty? fields)
-                                                            (assoc spec :fields (apply make-select-fields fields))
-                                                            fields)
+  ([table {:keys [fields converters aggregate join] :as query-spec} condition]
+         (let [spec (create-select-spec query-spec)
                ]
      (dml/select table condition spec))
    #_(->> (select table (condition-to-where condition) spec)
         (map #(convert-datum-in % spec)))) 
   )
+
+(defn add!
+  "add data
+   Args:
+       table -- see also 'query' 
+       data -- can be a map, or a seq of maps
+       spec -- see also 'query' 
+   Return:"
+  ([table data]
+   (add! table {} data))
+  ([table {:keys [converters] :as spec} & data]
+   (let [tr-fn #(reduce
+                  (fn [ret [k v]] (assoc ret (domain-field-to-db-field k) v))
+                  {} %)]
+     (dml/insert! table (map tr-fn data) spec))
+   #_(let [add-data (if-not (sequential? data) [data] data)]
+     (insert! table (map #(convert-datum-out % spec) add-data) spec))))
