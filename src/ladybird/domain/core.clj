@@ -5,7 +5,7 @@
 
 ;; domain meta preparing functions
 (defn to-clj-name [domain-name]
-  (str/camel-case-to-clj-case domain-name))
+  (str/clj-case domain-name))
 
 (defn prepare-table-name [{:keys [domain-name table-name] :as domain-meta}]
   (assoc domain-meta
@@ -41,7 +41,7 @@
         query-spec {:fields fields}
         ]
     `(defn ~query-fn ~query-fn-doc-string [condition# ]
-       (impl/query ~table-name condition# ~query-spec))))
+       (impl/query ~table-name ~query-spec condition#))))
 
 (defn generate-get-by-fn [{:keys [query-fn-meta get-by-fn-meta] :as domain-meta}]
   (let [[query-fn-name] query-fn-meta
@@ -63,12 +63,19 @@
          (~get-by-fn (list '~'= ~primary-key pk#))
          ))))
 
+(defn add-record! [rec {:keys [table-name db-maintain-fields create-fix converters] :as spec}]
+  (let [rec (apply dissoc rec db-maintain-fields)
+        rec (merge rec create-fix)
+        ]
+    (impl/add! table-name {:converters converters} rec)))
+
 (defn generate-add-fn [{:keys [domain-name add-fn-meta] :as domain-meta}]
   (let [[add-fn-name add-fn-doc-string] add-fn-meta
         add-fn (symbol add-fn-name)
-        param-sym (-> (to-clj-name domain-name) symbol)
         ]
-    `(defn ~add-fn ~add-fn-doc-string [~param-sym])
+    `(defn ~add-fn ~add-fn-doc-string [rec#]
+       (add-record! rec# ~(symbol domain-name))
+       )
     )
   )
 
@@ -86,14 +93,25 @@
    :domain-name
    :fields
    :primary-key
-   :auto-fields -- fields generated automatically by database
+   :db-maintain-fields -- fields maintained automatically by database, needn't be inserted or updated
+   :create-fix -- a map contains fields and their insert values, when a record is being inserted, these fields will be set to those values
+   :immutable-fields -- fields shouldn't be changed once created, but are not db maintaining fields
+
+   Ex.
+      {:domain-name \"Pro\"
+       :fields [:id :name :age :create-time :last-update]
+       :primary-key [:id]
+       :db-maintain-fields [:id :last-update]
+       :create-fix {:create-time nil}
+       :immutable-fields [:create-time]
+      }
    "
   [domain-name fields meta-data]
   (let [primary-key (when (some #{:id} fields) :id)]
     (merge {:domain-name (name domain-name)
             :fields fields
             :primary-key primary-key
-            :auto-fields (when (= primary-key :id) [:id])
+            :db-maintain-fields (when (= primary-key :id) [:id])
             }
            meta-data)))
 
