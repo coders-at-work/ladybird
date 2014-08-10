@@ -20,5 +20,3 @@
 (defn db-case-to-clj-case [s]
   (-> s string/lower-case underscore-to-hyphen))
 
-(defn clj-case-keyword [x]
-  (keyword (clj-case x)))
