@@ -55,14 +55,15 @@
   "add data
    Args:
        table -- see also 'query' 
-       data -- can be a map, or a seq of maps
+       rec -- a map
+       recs -- a seq of maps
        spec -- see also 'query' 
    Return:"
-  ([table data]
-   (add! table {} data))
-  ([table {:keys [converters] :as spec} & data]
+  ([table rec]
+   (add! table {} rec))
+  ([table {:keys [converters] :as spec} & recs]
    (dml/insert! table
-                (map #(convert-record-out spec %) data)
+                (map #(convert-record-out spec %) recs)
                 spec)
    #_(let [tr-fn #(reduce
                   (fn [ret [k v]] (assoc ret (domain-field-to-db-field k) v))
