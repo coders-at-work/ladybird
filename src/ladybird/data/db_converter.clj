@@ -1,6 +1,6 @@
 (ns ladybird.data.db-converter
-    (:use data.converter-core
-          [util.str-utils :only (datetime-str-to-date)])
+    (:use ladybird.data.converter-core
+          [ladybird.util.string :only (datetime-str-to-date)])
     (:import (java.util Date Calendar)))
 
 (defn- truncate-time [^java.util.Date d]
