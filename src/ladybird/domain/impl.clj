@@ -11,10 +11,7 @@
 (defn make-select-fields
   "Translate domain fields definition to sql select [db-field alias] pairs. A field is a keyword."
   [& fields]
-  (map #(vector (domain-field-to-db-field %) %) fields)
-  #_(reduce (fn [ret domain-field]
-              (conj ret [(domain-field-to-db-field domain-field) domain-field]))
-          [] fields))
+  (map #(vector (domain-field-to-db-field %) %) fields))
 
 ;; meta data
 (defn create-select-spec [{:keys [fields ] :as query-spec}]
