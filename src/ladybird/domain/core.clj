@@ -7,6 +7,33 @@
 (defn to-clj-name [domain-name]
   (str/clj-case domain-name))
 
+(defn create-meta
+  "Create basic meta data from arguments of defdomain. Default meta keys include:
+   :domain-name
+   :fields
+   :primary-key
+   :db-maintain-fields -- fields maintained automatically by database, needn't be inserted or updated
+   :create-fix -- a map contains fields and their insert values, when a record is being inserted, these fields will be set to those values
+   :immutable-fields -- fields shouldn't be changed once created, but are not db maintaining fields
+
+   Ex.
+      {:domain-name \"Pro\"
+       :fields [:id :name :age :create-time :last-update]
+       :primary-key [:id]
+       :db-maintain-fields [:id :last-update]
+       :create-fix {:create-time nil}
+       :immutable-fields [:create-time]
+      }
+   "
+  [domain-name fields meta-data]
+  (let [primary-key (when (some #{:id} fields) :id)]
+    (merge {:domain-name (name domain-name)
+            :fields fields
+            :primary-key primary-key
+            :db-maintain-fields (when (= primary-key :id) [:id])
+            }
+           meta-data)))
+
 (defn prepare-table-name [{:keys [domain-name table-name] :as domain-meta}]
   (assoc domain-meta
          :table-name
@@ -35,13 +62,17 @@
   `(def ~(symbol domain-name) ~domain-meta)
   )
 
-(defn generate-query-fn [{:keys [table-name fields query-fn-meta] :as domain-meta}]
+(defn generate-query-fn [{:keys [table-name fields query-fn-meta converters] :as domain-meta}]
   (let [[query-fn-name query-fn-doc-string] query-fn-meta
         query-fn (symbol query-fn-name)
-        query-spec {:fields fields}
+        query-spec {:fields fields :converters converters}
         ]
-    `(defn ~query-fn ~query-fn-doc-string [condition# ]
-       (impl/query ~table-name ~query-spec condition#))))
+    ;; TODO generate query-fn with meta param
+    `(defn ~query-fn ~query-fn-doc-string
+         ([condition#]
+          (~query-fn ~query-spec condition#))
+         ([query-spec# condition#]
+          (impl/query ~table-name query-spec# condition#)))))
 
 (defn generate-get-by-fn [{:keys [query-fn-meta get-by-fn-meta] :as domain-meta}]
   (let [[query-fn-name] query-fn-meta
@@ -80,7 +111,7 @@
   )
 
 ;; define domain
-(def default-prepare-fns [prepare-table-name prepare-crud-fn-names])
+(def default-prepare-fns [create-meta prepare-table-name prepare-crud-fn-names])
 
 (def default-generate-fns [generate-domain generate-query-fn generate-get-by-fn generate-get-fn generate-add-fn])
 
@@ -88,47 +119,16 @@
 
 (def ^:dynamic *generate-fns* default-generate-fns)
 
-(defn create-meta
-  "Create basic meta data from arguments of defdomain. Default meta keys include:
-   :domain-name
-   :fields
-   :primary-key
-   :db-maintain-fields -- fields maintained automatically by database, needn't be inserted or updated
-   :create-fix -- a map contains fields and their insert values, when a record is being inserted, these fields will be set to those values
-   :immutable-fields -- fields shouldn't be changed once created, but are not db maintaining fields
-
-   Ex.
-      {:domain-name \"Pro\"
-       :fields [:id :name :age :create-time :last-update]
-       :primary-key [:id]
-       :db-maintain-fields [:id :last-update]
-       :create-fix {:create-time nil}
-       :immutable-fields [:create-time]
-      }
-   "
-  [domain-name fields meta-data]
-  (let [primary-key (when (some #{:id} fields) :id)]
-    (merge {:domain-name (name domain-name)
-            :fields fields
-            :primary-key primary-key
-            :db-maintain-fields (when (= primary-key :id) [:id])
-            }
-           meta-data)))
-
-(def ^:dynamic *create-meta* create-meta)
-
 (defmacro defdomain
   ([domain-name fields]
    `(defdomain ~domain-name ~fields {}))
   ([domain-name fields meta-data]
-   (let [domain-meta (*create-meta* domain-name fields meta-data)
-         prepare-fn (->> (reverse *prepare-fns*) (apply comp))
-         domain-meta (prepare-fn domain-meta)
+   (let [prepare-fn (->> (reverse *prepare-fns*) (apply comp))
+         domain-meta (prepare-fn domain-name fields meta-data)
          body (map #(% domain-meta) *generate-fns*)
          ]
      `(do
         ~@body
-        ;~(generate-domain domain-meta)
         #_(def ~domain-name ~domain-meta)))
    )
   )
