@@ -1,9 +1,13 @@
 (ns ladybird.db.dml
     (:require [ladybird.db.core :as dbc]
-              [ladybird.db.patch.korma :as dbk]))
+              [ladybird.db.patch.korma :as dbk]
+              [korma.core :as kc]))
 
 (defn- assoc-spec-with-db [spec]
        (->> (dbc/get-cur-conn) :conn-def (assoc spec :db)))
+
+;; construct sql
+(def raw kc/raw)
 
 ;; access db
 (defn select
