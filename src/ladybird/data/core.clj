@@ -1,7 +1,9 @@
 (ns ladybird.data.core
+    (:use [clojure.walk :only (postwalk)])
     (:require [clojure.string :as string]
               [ladybird.util.string :as str]
               [ladybird.db.dml :as dml]
+              [ladybird.data.cond :as c]
               ))
 
 ;; convert db record related
@@ -37,6 +39,13 @@
               (assoc m (domain-field-to-db-field k) (convert-value :out converters k v)))
           {} rec))
 
+;; prepare sql structure
+(defn- make-raw [x]
+       (postwalk #(if (c/raw? %)
+                    (list dml/raw (second %))
+                    %)
+                 x))
+
 ;; crud
 (defn query
   "query data
@@ -56,8 +65,8 @@
   ;; TODO use converters to translate condition, ex. for boolean values
   ([table {:keys [fields converters aggregate join] :as spec} condition]
          (let [spec (create-select-spec spec)
-               ]
-     (->> (dml/select table condition spec) (map #(convert-record-in spec %))))
+               [where] (map make-raw [condition])]
+     (->> (dml/select table where spec) (map #(convert-record-in spec %))))
    #_(->> (select table (condition-to-where condition) spec)
         (map #(convert-datum-in % spec)))) 
   )
