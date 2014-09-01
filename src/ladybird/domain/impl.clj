@@ -39,14 +39,25 @@
 
 ;; crud
 (defn query
-  ""
+  "query data
+   Args:
+       table -- a string of table name
+       condition -- a list represent the query criteria, ex. '(and (< :user-age 35) (> :user-age 20))
+                    see also ladybird.data.cond
+       spec -- data model spec
+           build-in keys as following:
+               :fields -- see also ladybird.db.dml/select
+               :converters - A map contains fields as keys and their converters as values. 
+               :aggregate -- see also ladybird.db.dml/select
+   Return:
+       a seq of data"
   ([table condition]
    (query table {} condition))
   ;; TODO use converters to translate condition, ex. for boolean values
-  ([table {:keys [fields converters aggregate join] :as query-spec} condition]
-         (let [spec (create-select-spec query-spec)
+  ([table {:keys [fields converters aggregate join] :as spec} condition]
+         (let [spec (create-select-spec spec)
                ]
-     (->> (dml/select table condition spec) (map #(convert-record-in query-spec %))))
+     (->> (dml/select table condition spec) (map #(convert-record-in spec %))))
    #_(->> (select table (condition-to-where condition) spec)
         (map #(convert-datum-in % spec)))) 
   )
