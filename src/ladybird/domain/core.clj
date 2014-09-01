@@ -1,6 +1,6 @@
 (ns ladybird.domain.core
     (:require [ladybird.util.string :as str]
-              [ladybird.domain.impl :as impl]
+              [ladybird.data.core :as dc]
               ))
 
 ;; domain meta preparing functions
@@ -72,7 +72,7 @@
          ([condition#]
           (~query-fn ~query-spec condition#))
          ([query-spec# condition#]
-          (impl/query ~table-name query-spec# condition#)))))
+          (dc/query ~table-name query-spec# condition#)))))
 
 (defn generate-get-by-fn [{:keys [query-fn-meta get-by-fn-meta] :as domain-meta}]
   (let [[query-fn-name] query-fn-meta
@@ -98,7 +98,7 @@
   (let [rec (apply dissoc rec db-maintain-fields)
         rec (merge rec create-fix)
         ]
-    (impl/add! table-name {:converters converters} rec)))
+    (dc/add! table-name {:converters converters} rec)))
 
 (defn generate-add-fn [{:keys [domain-name add-fn-meta] :as domain-meta}]
   (let [[add-fn-name add-fn-doc-string] add-fn-meta
