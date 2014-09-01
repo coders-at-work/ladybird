@@ -11,9 +11,12 @@
        (-> (name field) str/clj-case-to-db-case keyword))
 
 (defn make-select-fields
-  "Translate domain fields definition to sql select [db-field alias] pairs. A field is a keyword."
+  "Translate domain fields definition to sql select [db-field alias] pairs. A field is a keyword or a [db-field alias] vector."
   [& fields]
-  (map #(vector (domain-field-to-db-field %) %) fields))
+  (map #(if (vector? %)
+          %
+          (vector (domain-field-to-db-field %) %))
+       fields))
 
 ;; meta data
 (defn create-select-spec [{:keys [fields ] :as query-spec}]
@@ -40,9 +43,15 @@
           {} rec))
 
 ;; prepare sql structure
-(defn- make-raw [x]
+(defn- to-construct-raw [x]
        (postwalk #(if (c/raw? %)
                     (list dml/raw (second %))
+                    %)
+                 x))
+
+(defn- to-raw-result [x]
+       (postwalk #(if (c/raw? %)
+                    (dml/raw (second %))
                     %)
                  x))
 
@@ -55,17 +64,20 @@
                     see also ladybird.data.cond
        spec -- data model spec
            build-in keys as following:
-               :fields -- see also ladybird.db.dml/select
+               :fields -- same as ladybird.db.dml/select
                :converters - A map contains fields as keys and their converters as values. 
-               :aggregate -- see also ladybird.db.dml/select
+               :aggregate -- same as ladybird.db.dml/select
    Return:
        a seq of data"
   ([table condition]
    (query table {} condition))
   ;; TODO use converters to translate condition, ex. for boolean values
   ([table {:keys [fields converters aggregate join] :as spec} condition]
-         (let [spec (create-select-spec spec)
-               [where] (map make-raw [condition])]
+         (let [{:keys [fields] :as spec} (create-select-spec spec)
+               [where] (map to-construct-raw [condition])
+               [fields] (map to-raw-result [fields])
+               spec (assoc spec :fields fields)
+               ]
      (->> (dml/select table where spec) (map #(convert-record-in spec %))))
    #_(->> (select table (condition-to-where condition) spec)
         (map #(convert-datum-in % spec)))) 
