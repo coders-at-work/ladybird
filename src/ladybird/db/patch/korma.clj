@@ -61,7 +61,7 @@
              add-options-fn #(if db-options (assoc % :options db-options) %)]
          [add-db-fn add-options-fn]))
 
-(defn select [ent where-clause {:keys [fields converters join aggregate db] :as spec}]
+(defn select [ent where-clause {:keys [fields join aggregate db] :as spec}]
   (let [where-fn (if-not (empty? where-clause) #(where % where-clause) identity)
         fields-fn (if fields #(apply kc/fields % fields) identity)
         aggregate-fn (if aggregate (parse-aggregate aggregate) identity)
@@ -69,11 +69,11 @@
         [add-db-fn add-options-fn] (make-db-fns db)]
     (-> (kc/select* ent) add-db-fn add-options-fn complete-query-fn kc/exec)))
 
-(defn insert! [ent data {:keys [fields converters db] :as spec}]
+(defn insert! [ent data {:keys [fields db] :as spec}]
   (let [[add-db-fn add-options-fn] (make-db-fns db)]
     (-> (kc/insert* ent) add-db-fn add-options-fn (kc/values data) kc/exec :GENERATED_KEY)))
 
-(defn update! [ent datum where-clause {:keys [fields converters db] :as spec}]
+(defn update! [ent datum where-clause {:keys [fields db] :as spec}]
   (let [[add-db-fn add-options-fn] (make-db-fns db)]
     (-> (update* ent) add-db-fn add-options-fn (kc/set-fields datum) (where where-clause) kc/exec first)))
 
