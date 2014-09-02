@@ -47,7 +47,7 @@
           {} rec))
 
 ;; prepare sql structure
-(defn- to-construct-raw [x]
+#_(defn- to-construct-raw [x]
        (postwalk #(if (c/raw? %)
                     (list dml/raw (second %))
                     %)
@@ -91,7 +91,7 @@
   ;; TODO use converters to translate condition, ex. for boolean values
   ([table {:keys [fields converters aggregate join] :as spec} condition]
          (let [{:keys [fields] :as spec} (create-select-spec spec)
-               [fields] (map to-raw-result [fields])
+               fields (to-raw-result fields)
                spec (assoc spec :fields fields)
                convert-spec {:converters converters}
                where (condition-to-where convert-spec condition)
@@ -101,9 +101,9 @@
 (defn add!
   "add data
    Args:
-       table -- see also 'query' 
+       table -- same as 'query' 
        rec -- a map
-       recs -- a seq of maps
+       recs -- a seq of maps(recs)
        spec -- see also 'query' 
    Return:"
   ([table rec]
@@ -112,3 +112,19 @@
    (dml/insert! table
                 (map #(convert-record-out spec %) recs)
                 spec)))
+
+(defn modify!
+  "modify data
+   Args:
+       table -- same as 'query' 
+       datum -- a map specifying which fields to be changed
+       condition -- same as 'query' 
+       spec -- see also 'query' 
+   Return:
+       count of affected rows" 
+  ([table condition datum]
+   (modify! table {} condition datum))
+  ([table {:keys [converters join] :as spec} condition datum]
+   (let [where (condition-to-where spec condition)
+         datum (convert-record-out spec datum )]
+     (dml/update! table datum where spec))))
