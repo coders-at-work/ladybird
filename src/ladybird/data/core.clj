@@ -1,5 +1,5 @@
 (ns ladybird.data.core
-    (:use [clojure.walk :only (postwalk)])
+    (:use [clojure.walk :only (postwalk prewalk)])
     (:require [clojure.string :as string]
               [ladybird.util.string :as str]
               [ladybird.db.dml :as dml]
@@ -19,7 +19,7 @@
        fields))
 
 ;; meta data
-(defn create-select-spec [{:keys [fields ] :as query-spec}]
+(defn create-select-spec [{:keys [fields] :as query-spec}]
   (let [ret {}
         fields (apply make-select-fields fields)
         ret (if-not (empty? fields) (assoc ret :fields fields) ret)
@@ -39,7 +39,11 @@
 
 (defn convert-record-out [{:keys [converters] :as spec} rec]
   (reduce (fn [m [k v]]
-              (assoc m (domain-field-to-db-field k) (convert-value :out converters k v)))
+              (let [v (if (c/raw? v)
+                        (dml/raw (second v))
+                        (convert-value :out converters k v))
+                    ]
+                (assoc m (domain-field-to-db-field k) v)))
           {} rec))
 
 ;; prepare sql structure
@@ -54,6 +58,19 @@
                     (dml/raw (second %))
                     %)
                  x))
+
+(defn- convert-pred-expr [converters [pred field val :as pred-expr]]
+       (cond (= 'nil? pred) (list '= field nil)
+             (c/raw? val) pred-expr
+             (= 'in  pred) (list 'in field (mapv #(if (c/raw? %) % (convert-value :out converters field %)) val))
+             :default (list pred field (convert-value :out converters field val))))
+
+(defn- condition-to-where [{:keys [converters] :as spec} condition]
+       (let [pred? #'c/pred?]
+         (prewalk #(cond (pred? %) (convert-pred-expr converters %)
+                         (c/raw? %) (list dml/raw (second %))
+                         :default %)
+                condition)))
 
 ;; crud
 (defn query
@@ -74,14 +91,12 @@
   ;; TODO use converters to translate condition, ex. for boolean values
   ([table {:keys [fields converters aggregate join] :as spec} condition]
          (let [{:keys [fields] :as spec} (create-select-spec spec)
-               [where] (map to-construct-raw [condition])
                [fields] (map to-raw-result [fields])
                spec (assoc spec :fields fields)
+               convert-spec {:converters converters}
+               where (condition-to-where convert-spec condition)
                ]
-     (->> (dml/select table where spec) (map #(convert-record-in spec %))))
-   #_(->> (select table (condition-to-where condition) spec)
-        (map #(convert-datum-in % spec)))) 
-  )
+     (->> (dml/select table where spec) (map #(convert-record-in convert-spec %))))))
 
 (defn add!
   "add data
@@ -96,10 +111,4 @@
   ([table {:keys [converters] :as spec} & recs]
    (dml/insert! table
                 (map #(convert-record-out spec %) recs)
-                spec)
-   #_(let [tr-fn #(reduce
-                  (fn [ret [k v]] (assoc ret (domain-field-to-db-field k) v))
-                  {} %)]
-     (dml/insert! table (map tr-fn data) spec))
-   #_(let [add-data (if-not (sequential? data) [data] data)]
-     (insert! table (map #(convert-datum-out % spec) add-data) spec))))
+                spec)))
