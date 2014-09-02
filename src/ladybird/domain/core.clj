@@ -94,21 +94,18 @@
          (~get-by-fn (list '~'= ~primary-key pk#))
          ))))
 
-(defn add-record! [rec {:keys [table-name db-maintain-fields create-fix converters] :as spec}]
+(defn add-record! [{:keys [table-name db-maintain-fields create-fix converters] :as spec} & recs]
   (let [rec (apply dissoc rec db-maintain-fields)
         rec (merge rec create-fix)
         ]
-    (dc/add! table-name {:converters converters} rec)))
+    (apply dc/add! table-name {:converters converters} recs)))
 
 (defn generate-add-fn [{:keys [domain-name add-fn-meta] :as domain-meta}]
   (let [[add-fn-name add-fn-doc-string] add-fn-meta
         add-fn (symbol add-fn-name)
         ]
-    `(defn ~add-fn ~add-fn-doc-string [rec#]
-       (add-record! rec# ~(symbol domain-name))
-       )
-    )
-  )
+    `(defn ~add-fn ~add-fn-doc-string [& recs#]
+       (apply add-record! ~(symbol domain-name) recs#))))
 
 ;; define domain
 (def default-prepare-fns [create-meta prepare-table-name prepare-crud-fn-names])
