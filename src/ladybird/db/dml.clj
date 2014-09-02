@@ -44,10 +44,11 @@
 (defn insert!
   "insert database record 
    Args:
-       table -- see also 'select' 
+       table -- same as 'select' 
        data -- can be a map, or a seq of maps
        spec -- see also 'select'
-   Return:"
+   Return:
+       the id of the first inserted record"
   ([table data]
    (insert! table data {}))
   ([table data {:keys [fields] :as spec}]
@@ -56,9 +57,9 @@
 (defn update!
   "update database record
    Args:
-       table -- see also 'select' 
+       table -- same as 'select' 
        datum -- a map specifying which fields to be changed
-       where -- see also 'select' 
+       where -- same as 'select' 
        spec -- see also 'select'
    Return:
        count of affected rows" 
@@ -70,8 +71,8 @@
 (defn delete!
   "delete database record
    Args:
-       table -- see also 'select' 
-       where -- see also 'select' 
+       table -- same as 'select' 
+       where -- same as 'select' 
        spec -- see also 'select'
    Return:
        nil" 
