@@ -10,9 +10,9 @@
          'is-null ['nil?]
          [op value]))
 
-(defn- pred [[op field value]]
+(defn- pred [[op field value :as p]]
        (let [[op value] (convert-op-value op value)]
-         (if (nil? value)
+         (if (= 2 (count p))
            `(list '~op ~field)
            `(list '~op ~field ~value))))
 
