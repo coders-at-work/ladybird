@@ -69,11 +69,11 @@
         [add-db-fn add-options-fn] (make-db-fns db)]
     (-> (kc/select* ent) add-db-fn add-options-fn complete-query-fn kc/exec)))
 
-(defn insert! [ent data {:keys [fields db] :as spec}]
+(defn insert! [ent data {:keys [db] :as spec}]
   (let [[add-db-fn add-options-fn] (make-db-fns db)]
     (-> (kc/insert* ent) add-db-fn add-options-fn (kc/values data) kc/exec :GENERATED_KEY)))
 
-(defn update! [ent datum where-clause {:keys [fields db] :as spec}]
+(defn update! [ent datum where-clause {:keys [db] :as spec}]
   (let [[add-db-fn add-options-fn] (make-db-fns db)]
     (-> (update* ent) add-db-fn add-options-fn (kc/set-fields datum) (where where-clause) kc/exec first)))
 
