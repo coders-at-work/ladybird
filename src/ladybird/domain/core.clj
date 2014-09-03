@@ -7,14 +7,28 @@
 (defn to-clj-name [domain-name]
   (str/clj-case domain-name))
 
+(defn optimistic-locking-fields
+  "Returns real fields used by optimistic locking, which is specified by meta"
+  [{:keys [fields optimistic-locking-fields] :as meta}]
+  (cond (some #{:*} optimistic-locking-fields) fields
+        (not-empty optimistic-locking-fields) optimistic-locking-fields
+        (some #{:version} fields) [:version]
+        (some #{:last-update} fields) [:last-update]
+        :default optimistic-locking-fields)
+  )
+
 (defn create-meta
   "Create basic meta data from arguments of defdomain. Default meta keys include:
    :domain-name
    :fields
-   :primary-key
+   :primary-key -- if not specified and fields contains :id, then the primary key will be set to :id by default
    :db-maintain-fields -- fields maintained automatically by database, needn't be inserted or updated
    :create-fix -- a map contains fields and their insert values, when a record is being inserted, these fields will be set to those values
    :immutable-fields -- fields shouldn't be changed once created, but are not db maintaining fields
+   :optimistic-locking-fields -- fields used by optimistic locking, if not specified and fields contains :version or :last-update,
+                                 :optimistic-locking-fields will be set to it, if both contained, :version takes precedence. If
+                                 :optimistic-locking-fields contains :*, then all fields will be used by optimistic locking.
+   :converters -- a map specifying fields converters.
 
    Ex.
       {:domain-name \"Pro\"
@@ -52,12 +66,15 @@
         add-fn-doc-string (str "add " clj-name)
         update-fn-name (str "update-" clj-name "!")
         update-fn-doc-string (str "update " clj-name)
+        save-fn-name (str "save-" clj-name "!")
+        save-fn-doc-string (str "save " clj-name)
         ]
     (assoc domain-meta :query-fn-meta [query-fn-name query-fn-doc-string]
                        :get-by-fn-meta [get-by-fn-name get-by-fn-doc-string]
                        :get-fn-meta (when primary-key [get-fn-name get-fn-doc-string])
                        :add-fn-meta [add-fn-name add-fn-doc-string]
                        :update-fn-meta [update-fn-name update-fn-doc-string]
+                       :save-fn-meta (when primary-key [save-fn-name save-fn-doc-string])
                        )))
 
 ;; domain generating functions
@@ -70,7 +87,6 @@
         query-fn (symbol query-fn-name)
         query-spec {:fields fields :converters converters}
         ]
-    ;; TODO generate query-fn with meta param
     `(defn ~query-fn ~query-fn-doc-string
          ([condition#]
           (~query-fn ~query-spec condition#))
@@ -122,10 +138,31 @@
     `(defn ~update-fn ~update-fn-doc-string [condition# datum#]
        (update-record! ~(symbol domain-name) condition# datum#))))
 
+(defn- saving-condition [primary-key lock-fields]
+       (let [lock-clauses (map (fn [field] `(list '~'= ~field (~field ~'rec))) lock-fields)
+             pk-cond `(list '~'= ~primary-key (~primary-key ~'rec))
+             ]
+         (if (empty? lock-clauses)
+           pk-cond
+           `(list '~'and ~pk-cond ~@lock-clauses))))
+
+(defn generate-save-fn [{:keys [primary-key save-fn-meta update-fn-meta] :as domain-meta}]
+  (when primary-key
+    (let [[update-fn-name] update-fn-meta
+          update-fn (symbol update-fn-name)
+          [save-fn-name save-fn-doc-string] save-fn-meta
+          save-fn (symbol save-fn-name)
+          lock-fields (optimistic-locking-fields domain-meta)
+          condition (saving-condition primary-key lock-fields)
+          ]
+      `(defn ~save-fn ~save-fn-doc-string [~'rec]
+          (~update-fn ~condition ~'rec)))))
+
 ;; define domain
 (def default-prepare-fns [create-meta prepare-table-name prepare-crud-fn-names])
 
-(def default-generate-fns [generate-domain generate-query-fn generate-get-by-fn generate-get-fn generate-add-fn generate-update-fn])
+(def default-generate-fns [generate-domain generate-query-fn generate-get-by-fn generate-get-fn generate-add-fn generate-update-fn
+                           generate-save-fn])
 
 (def ^:dynamic *prepare-fns* default-prepare-fns)
 
@@ -149,7 +186,4 @@
          body (map #(% domain-meta) *generate-fns*)
          ]
      `(do
-        ~@body
-        #_(def ~domain-name ~domain-meta)))
-   )
-  )
+        ~@body))))
