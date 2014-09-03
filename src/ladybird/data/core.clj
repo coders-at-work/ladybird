@@ -124,7 +124,7 @@
        count of affected rows" 
   ([table condition datum]
    (modify! table {} condition datum))
-  ([table {:keys [converters join] :as spec} condition datum]
+  ([table {:keys [converters] :as spec} condition datum]
    (let [where (condition-to-where spec condition)
          datum (convert-record-out spec datum )]
      (dml/update! table datum where spec))))
