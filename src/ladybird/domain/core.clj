@@ -48,13 +48,16 @@
         get-by-fn-doc-string (str "get one " clj-name " by condition ")
         get-fn-name (str "get-" clj-name)
         get-fn-doc-string (str "get one " clj-name " by primary key ")
-        add-fn-name (str "add-" clj-name)
+        add-fn-name (str "add-" clj-name "!")
         add-fn-doc-string (str "add " clj-name)
+        update-fn-name (str "update-" clj-name "!")
+        update-fn-doc-string (str "update " clj-name)
         ]
     (assoc domain-meta :query-fn-meta [query-fn-name query-fn-doc-string]
                        :get-by-fn-meta [get-by-fn-name get-by-fn-doc-string]
                        :get-fn-meta (when primary-key [get-fn-name get-fn-doc-string])
                        :add-fn-meta [add-fn-name add-fn-doc-string]
+                       :update-fn-meta [update-fn-name update-fn-doc-string]
                        )))
 
 ;; domain generating functions
@@ -95,8 +98,7 @@
          ))))
 
 (defn add-record! [{:keys [table-name db-maintain-fields create-fix converters] :as spec} & recs]
-  (let [rec (apply dissoc rec db-maintain-fields)
-        rec (merge rec create-fix)
+  (let [recs (map #(-> (apply dissoc % db-maintain-fields) (merge create-fix)) recs)
         ]
     (apply dc/add! table-name {:converters converters} recs)))
 
