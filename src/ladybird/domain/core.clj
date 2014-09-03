@@ -19,7 +19,7 @@
    Ex.
       {:domain-name \"Pro\"
        :fields [:id :name :age :create-time :last-update]
-       :primary-key [:id]
+       :primary-key :id
        :db-maintain-fields [:id :last-update]
        :create-fix {:create-time nil}
        :immutable-fields [:create-time]
@@ -109,16 +109,38 @@
     `(defn ~add-fn ~add-fn-doc-string [& recs#]
        (apply add-record! ~(symbol domain-name) recs#))))
 
+(defn update-record! [{:keys [table-name db-maintain-fields immutable-fields converters] :as spec} condition datum]
+  (let [datum (apply dissoc datum db-maintain-fields)
+        datum (apply dissoc datum immutable-fields)
+        ]
+    (dc/modify! table-name {:converters converters} condition datum)))
+
+(defn generate-update-fn [{:keys [domain-name update-fn-meta] :as domain-meta}]
+  (let [[update-fn-name update-fn-doc-string] update-fn-meta
+        update-fn (symbol update-fn-name)
+        ]
+    `(defn ~update-fn ~update-fn-doc-string [condition# datum#]
+       (update-record! ~(symbol domain-name) condition# datum#))))
+
 ;; define domain
 (def default-prepare-fns [create-meta prepare-table-name prepare-crud-fn-names])
 
-(def default-generate-fns [generate-domain generate-query-fn generate-get-by-fn generate-get-fn generate-add-fn])
+(def default-generate-fns [generate-domain generate-query-fn generate-get-by-fn generate-get-fn generate-add-fn generate-update-fn])
 
 (def ^:dynamic *prepare-fns* default-prepare-fns)
 
 (def ^:dynamic *generate-fns* default-generate-fns)
 
 (defmacro defdomain
+  "
+   Ex.
+      (use 'ladybird.data.db-converter)
+      (defdomain Tmp [:id :create-time :last-update :valid]
+                     {:db-maintain-fields [:id :last-update]
+                      :create-fix {:create-time nil}
+                      :immutable-fields [:create-time]
+                      :converters {:valid BOOL}})
+  "
   ([domain-name fields]
    `(defdomain ~domain-name ~fields {}))
   ([domain-name fields meta-data]
