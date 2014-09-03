@@ -60,10 +60,11 @@
                  x))
 
 (defn- convert-pred-expr [converters [pred field val :as pred-expr]]
-       (cond (= 'nil? pred) (list '= field nil)
-             (c/raw? val) pred-expr
-             (= 'in  pred) (list 'in field (mapv #(if (c/raw? %) % (convert-value :out converters field %)) val))
-             :default (list pred field (convert-value :out converters field val))))
+       (let [db-field (domain-field-to-db-field field)]
+         (cond (= 'nil? pred) (list '= db-field nil)
+             (c/raw? val) (list pred db-field val)
+             (= 'in  pred) (list pred db-field (mapv #(if (c/raw? %) % (convert-value :out converters field %)) val))
+             :default (list pred db-field (convert-value :out converters field val)))))
 
 (defn- condition-to-where [{:keys [converters] :as spec} condition]
        (let [pred? #'c/pred?]
