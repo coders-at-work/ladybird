@@ -17,6 +17,7 @@
         :default optimistic-locking-fields)
   )
 
+;; TODO add :update-fix key
 (defn create-meta
   "Create basic meta data from arguments of defdomain. Default meta keys include:
    :domain-name
@@ -71,7 +72,7 @@
         delete-by-fn-name (str "delete-" clj-name "-by!")
         delete-by-fn-doc-string (str "delete " clj-name " by condition")
         delete-fn-name (str "delete-" clj-name "!")
-        delete-fn-doc-string (str "delete " clj-name " by primary key")
+        delete-fn-doc-string (str "delete " clj-name " by primary key\nReturn:\n    true -- success to delete the record\n    false -- fail to delete the record because the record has been modified")
         ]
     (assoc domain-meta :query-fn-meta [query-fn-name query-fn-doc-string]
                        :get-by-fn-meta [get-by-fn-name get-by-fn-doc-string]
@@ -168,18 +169,35 @@
   (when (empty? condition) (throw (IllegalArgumentException. "condition is empty in delete statement")))
   (dc/remove! table-name {:converters converters} condition))
 
-(defn generate-delete-by-fn [{:keys [table-name domain-name delete-by-fn-meta] :as domain-meta}]
+(defn generate-delete-by-fn [{:keys [domain-name delete-by-fn-meta] :as domain-meta}]
   (let [[delete-by-fn-name delete-by-fn-doc-string] delete-by-fn-meta
         delete-by-fn (symbol delete-by-fn-name)
         ]
     `(defn ~delete-by-fn ~delete-by-fn-doc-string [condition#]
        (delete-record! ~(symbol domain-name) condition#))))
 
+(defn generate-delete-fn [{:keys [primary-key delete-fn-meta delete-by-fn-meta get-fn-meta] :as domain-meta}]
+  (when primary-key
+    (let [[get-fn-name] get-fn-meta
+          get-fn (symbol get-fn-name)
+          [delete-by-fn-name] delete-by-fn-meta
+          delete-by-fn (symbol delete-by-fn-name)
+          [delete-fn-name delete-fn-doc-string] delete-fn-meta
+          delete-fn (symbol delete-fn-name)
+          lock-fields (optimistic-locking-fields domain-meta)
+          condition (saving-condition primary-key lock-fields)
+          ]
+      `(defn ~delete-fn ~delete-fn-doc-string [~'rec]
+         (~delete-by-fn ~condition)
+         (if (~get-fn (~primary-key ~'rec))
+           false
+           true)))))
+
 ;; define domain
 (def default-prepare-fns [create-meta prepare-table-name prepare-crud-fn-names])
 
 (def default-generate-fns [generate-domain generate-query-fn generate-get-by-fn generate-get-fn generate-add-fn generate-update-fn
-                           generate-save-fn generate-delete-by-fn])
+                           generate-save-fn generate-delete-by-fn generate-delete-fn])
 
 (def ^:dynamic *prepare-fns* default-prepare-fns)
 
