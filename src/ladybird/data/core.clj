@@ -76,7 +76,7 @@
 ;; crud
 (defn query
   "query data
-   Args:
+   Params:
        table -- a string of table name
        condition -- a list represent the query criteria, ex. '(and (< :user-age 35) (> :user-age 20))
                     see also ladybird.data.cond
@@ -101,7 +101,7 @@
 
 (defn add!
   "add data
-   Args:
+   Params:
        table -- same as 'query' 
        rec -- a map
        recs -- a seq of maps(recs)
@@ -116,7 +116,7 @@
 
 (defn modify!
   "modify data
-   Args:
+   Params:
        table -- same as 'query' 
        datum -- a map specifying which fields to be changed
        condition -- same as 'query' 
@@ -129,3 +129,15 @@
    (let [where (condition-to-where spec condition)
          datum (convert-record-out spec datum )]
      (dml/update! table datum where spec))))
+
+(defn remove!
+  "remove data
+   Params:
+       table -- same as 'query'
+       condition -- same as 'query'
+       spec -- see also 'query'
+   Return:
+       "
+  [table {:keys [converters] :as spec} condition]
+  (let [where (condition-to-where spec condition)]
+    (dml/delete! table where spec)))
