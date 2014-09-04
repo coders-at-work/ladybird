@@ -68,6 +68,10 @@
         update-fn-doc-string (str "update " clj-name)
         save-fn-name (str "save-" clj-name "!")
         save-fn-doc-string (str "save " clj-name)
+        delete-by-fn-name (str "delete-" clj-name "-by!")
+        delete-by-fn-doc-string (str "delete " clj-name " by condition")
+        delete-fn-name (str "delete-" clj-name "!")
+        delete-fn-doc-string (str "delete " clj-name " by primary key")
         ]
     (assoc domain-meta :query-fn-meta [query-fn-name query-fn-doc-string]
                        :get-by-fn-meta [get-by-fn-name get-by-fn-doc-string]
@@ -75,6 +79,8 @@
                        :add-fn-meta [add-fn-name add-fn-doc-string]
                        :update-fn-meta [update-fn-name update-fn-doc-string]
                        :save-fn-meta (when primary-key [save-fn-name save-fn-doc-string])
+                       :delete-by-fn-meta [delete-by-fn-name delete-by-fn-doc-string]
+                       :delete-fn-meta (when primary-key [delete-fn-name delete-fn-doc-string])
                        )))
 
 ;; domain generating functions
@@ -158,11 +164,22 @@
       `(defn ~save-fn ~save-fn-doc-string [~'rec]
           (~update-fn ~condition ~'rec)))))
 
+(defn delete-record! [{:keys [table-name converters] :as spec} condition]
+  (when (empty? condition) (throw (IllegalArgumentException. "condition is empty in delete statement")))
+  (dc/remove! table-name {:converters converters} condition))
+
+(defn generate-delete-by-fn [{:keys [table-name domain-name delete-by-fn-meta] :as domain-meta}]
+  (let [[delete-by-fn-name delete-by-fn-doc-string] delete-by-fn-meta
+        delete-by-fn (symbol delete-by-fn-name)
+        ]
+    `(defn ~delete-by-fn ~delete-by-fn-doc-string [condition#]
+       (delete-record! ~(symbol domain-name) condition#))))
+
 ;; define domain
 (def default-prepare-fns [create-meta prepare-table-name prepare-crud-fn-names])
 
 (def default-generate-fns [generate-domain generate-query-fn generate-get-by-fn generate-get-fn generate-add-fn generate-update-fn
-                           generate-save-fn])
+                           generate-save-fn generate-delete-by-fn])
 
 (def ^:dynamic *prepare-fns* default-prepare-fns)
 
