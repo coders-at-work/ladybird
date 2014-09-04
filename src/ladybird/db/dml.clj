@@ -12,7 +12,7 @@
 ;; access db
 (defn select
   "database select operation
-   Args:
+   Params:
        table -- a string of table name, or a table object which is determined by the lower sql abstraction library
        where -- a list represent the sql where clause, ex. '(and (< :user_age 35) (> :user_age 20))
        spec -- a map of spec about database operation, lower sql adapter layer must translate this spec to forms used by the specified sql abstraction library 
@@ -43,7 +43,7 @@
 
 (defn insert!
   "insert database record 
-   Args:
+   Params:
        table -- same as 'select' 
        data -- can be a map, or a seq of maps
        spec -- see also 'select'
@@ -56,7 +56,7 @@
 
 (defn update!
   "update database record
-   Args:
+   Params:
        table -- same as 'select' 
        datum -- a map specifying which fields to be changed
        where -- same as 'select' 
@@ -70,7 +70,7 @@
 
 (defn delete!
   "delete database record
-   Args:
+   Params:
        table -- same as 'select' 
        where -- same as 'select' 
        spec -- see also 'select'
