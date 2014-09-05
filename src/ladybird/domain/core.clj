@@ -24,7 +24,7 @@
    :fields
    :primary-key -- if not specified and fields contains :id, then the primary key will be set to :id by default
    :db-maintain-fields -- fields maintained automatically by database, needn't be inserted or updated
-   :create-fix -- a map contains fields and their insert values, when a record is being inserted, these fields will be set to those values
+   :add-fixed -- a map contains fields and their insert values, when a record is being inserted, these fields will be set to those values
    :immutable-fields -- fields shouldn't be changed once created, but are not db maintaining fields
    :optimistic-locking-fields -- fields used by optimistic locking, if not specified and fields contains :version or :last-update,
                                  :optimistic-locking-fields will be set to it, if both contained, :version takes precedence. If
@@ -36,7 +36,7 @@
        :fields [:id :name :age :create-time :last-update]
        :primary-key :id
        :db-maintain-fields [:id :last-update]
-       :create-fix {:create-time nil}
+       :add-fixed {:create-time nil}
        :immutable-fields [:create-time]
       }
    "
@@ -120,8 +120,8 @@
          (~get-by-fn (list '~'= ~primary-key pk#))
          ))))
 
-(defn add-record! [{:keys [table-name db-maintain-fields create-fix converters] :as spec} & recs]
-  (let [recs (map #(-> (apply dissoc % db-maintain-fields) (merge create-fix)) recs)
+(defn add-record! [{:keys [table-name db-maintain-fields add-fixed converters] :as spec} & recs]
+  (let [recs (map #(-> (apply dissoc % db-maintain-fields) (merge add-fixed)) recs)
         ]
     (apply dc/add! table-name {:converters converters} recs)))
 
@@ -216,7 +216,7 @@
       (use 'ladybird.data.db-converter)
       (defdomain Tmp [:id :create-time :last-update :valid]
                      {:db-maintain-fields [:id :last-update]
-                      :create-fix {:create-time nil}
+                      :add-fixed {:create-time nil}
                       :immutable-fields [:create-time]
                       :converters {:valid BOOL}})
   "
