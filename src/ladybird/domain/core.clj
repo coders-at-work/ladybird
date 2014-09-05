@@ -72,7 +72,7 @@
         delete-by-fn-name (str "delete-" clj-name "-by!")
         delete-by-fn-doc-string (str "delete " clj-name " by condition")
         delete-fn-name (str "delete-" clj-name "!")
-        delete-fn-doc-string (str "delete " clj-name " by primary key\nReturn:\n    true -- success to delete the record\n    false -- fail to delete the record because the record has been modified")
+        delete-fn-doc-string (str "delete " clj-name " by primary key\nReturn:\n    1 -- success to delete the record\n    0 -- fail to delete the record because the record has been modified")
         ]
     (assoc domain-meta :query-fn-meta [query-fn-name query-fn-doc-string]
                        :get-by-fn-meta [get-by-fn-name get-by-fn-doc-string]
@@ -136,7 +136,9 @@
   (let [datum (apply dissoc datum db-maintain-fields)
         datum (apply dissoc datum immutable-fields)
         ]
-    (dc/modify! table-name {:converters converters} condition datum)))
+    (if (empty? datum)
+      0
+      (dc/modify! table-name {:converters converters} condition datum))))
 
 (defn generate-update-fn [{:keys [domain-name update-fn-meta] :as domain-meta}]
   (let [[update-fn-name update-fn-doc-string] update-fn-meta
@@ -145,8 +147,9 @@
     `(defn ~update-fn ~update-fn-doc-string [condition# datum#]
        (update-record! ~(symbol domain-name) condition# datum#))))
 
-(defn- saving-condition [primary-key lock-fields]
-       (let [lock-clauses (map (fn [field] `(list '~'= ~field (~field ~'rec))) lock-fields)
+(defn- pk-and-lock-condition [{:keys [primary-key] :as domain-meta}]
+       (let [lock-fields (optimistic-locking-fields domain-meta)
+             lock-clauses (map (fn [field] `(list '~'= ~field (~field ~'rec))) lock-fields)
              pk-cond `(list '~'= ~primary-key (~primary-key ~'rec))
              ]
          (if (empty? lock-clauses)
@@ -159,8 +162,7 @@
           update-fn (symbol update-fn-name)
           [save-fn-name save-fn-doc-string] save-fn-meta
           save-fn (symbol save-fn-name)
-          lock-fields (optimistic-locking-fields domain-meta)
-          condition (saving-condition primary-key lock-fields)
+          condition (pk-and-lock-condition domain-meta)
           ]
       `(defn ~save-fn ~save-fn-doc-string [~'rec]
           (~update-fn ~condition ~'rec)))))
@@ -176,6 +178,13 @@
     `(defn ~delete-by-fn ~delete-by-fn-doc-string [condition#]
        (delete-record! ~(symbol domain-name) condition#))))
 
+(defn- delete-fn-impl [get-fn delete-by-fn pk condition]
+       (if (get-fn pk)
+         (do
+           (delete-by-fn condition)
+           (if (get-fn pk) 0 1))
+         0))
+
 (defn generate-delete-fn [{:keys [primary-key delete-fn-meta delete-by-fn-meta get-fn-meta] :as domain-meta}]
   (when primary-key
     (let [[get-fn-name] get-fn-meta
@@ -184,14 +193,12 @@
           delete-by-fn (symbol delete-by-fn-name)
           [delete-fn-name delete-fn-doc-string] delete-fn-meta
           delete-fn (symbol delete-fn-name)
-          lock-fields (optimistic-locking-fields domain-meta)
-          condition (saving-condition primary-key lock-fields)
+          condition (pk-and-lock-condition domain-meta)
           ]
       `(defn ~delete-fn ~delete-fn-doc-string [~'rec]
-         (~delete-by-fn ~condition)
-         (if (~get-fn (~primary-key ~'rec))
-           false
-           true)))))
+         (if (empty? ~'rec)
+           0
+           (#'ladybird.domain.core/delete-fn-impl ~get-fn ~delete-by-fn (~primary-key ~'rec) ~condition))))))
 
 ;; define domain
 (def default-prepare-fns [create-meta prepare-table-name prepare-crud-fn-names])
