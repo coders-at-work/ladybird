@@ -22,7 +22,7 @@
                                 [field field-alias] -- field name and its' alias, both can be string or keyword
                    :aggregate -- spec of aggregation, should be of form as: [[function-name field] alias]. function-name can be a string, a keyword or a symbol. field and alias should be a keyword.
                                  Ex. [[:count :id] :cnt], [[\"max\" :price] :most_expensive]
-                   :joins -- a vector of join specs. Each join spec has one of following forms:
+                   :joins -- a vector of join specs. Each join spec has one of the following forms:
                                    [join-type table fields on-clause]
                                    [join-type [table alias] fields on-clause]
                              join-type -- can be :inner, :left or :right
@@ -30,15 +30,22 @@
                              alias -- the alias name, can be string or keyword
                              fields -- same as :fields above 
                              on-clause -- on condition, its form is same as where
-                     Ex. 
-                         {:joins [[:inner :person [:name :age] '(= :person.id :person_id)]
-                                  [:left [:email :e] [[:address :addr]] '(= :person.id :e.person_id)]]}
+                         Ex. 
+                            {:joins [[:inner :person [:name :age] '(= :person.id :person_id)]
+                                     [:left [:email :e] [[:address :addr]] '(= :person.id :e.person_id)]]}
                    ;
+                   :order -- a vector of order-by specs. Each element can be one of the following forms:
+                                   :field-name -- means 'order by field-name asc'
+                                   [:field-name :dir :another-field :another-dir ...] -- means 'order by field-name dir, another-field another-dir...', direction can be asc or desc
+                                   Ex.
+                                      :order [:age [:start-time :desc :end-time :asc] :create-time]
+                   :offset -- a number means from which position the selecting results begin to return
+                   :limit -- a number means the maximum rows will be returned
    Return:
        database records"
   ([table where]
     (select table where {}))
-  ([table where {:keys [fields joins aggregate] :as spec}]
+  ([table where {:keys [fields joins aggregate order] :as spec}]
     (dbk/select table where (assoc-spec-with-db spec))))
 
 (defn insert!

@@ -61,11 +61,32 @@
              add-options-fn #(if db-options (assoc % :options db-options) %)]
          [add-db-fn add-options-fn]))
 
-(defn select [ent where-clause {:keys [fields join aggregate db] :as spec}]
+(defn- make-order-fn [order]
+       (let [order (map #(if (keyword? %) [% :asc] %) order)
+             order (flatten order)
+             ]
+         (fn [query]
+             (loop [q query
+                    o order
+                    ]
+                   (let [[f dir] o
+                         qu (kc/order q f dir)
+                         ord (drop 2 o)
+                         ]
+                     (if (empty? ord)
+                       qu
+                       (recur qu ord)))))))
+
+(defn select
+  "Params:
+       order -- see 'ladybird.db.dml/select'
+   "
+  [ent where-clause {:keys [fields join aggregate order db] :as spec}]
   (let [where-fn (if-not (empty? where-clause) #(where % where-clause) identity)
         fields-fn (if fields #(apply kc/fields % fields) identity)
         aggregate-fn (if aggregate (parse-aggregate aggregate) identity)
-        complete-query-fn (comp fields-fn where-fn aggregate-fn)
+        order-fn (if (empty? order) identity (make-order-fn order))
+        complete-query-fn (comp fields-fn where-fn aggregate-fn order-fn)
         [add-db-fn add-options-fn] (make-db-fns db)]
     (-> (kc/select* ent) add-db-fn add-options-fn complete-query-fn kc/exec)))
 
