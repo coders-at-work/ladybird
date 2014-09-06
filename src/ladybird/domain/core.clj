@@ -59,6 +59,8 @@
   (let [clj-name (to-clj-name domain-name)
         query-fn-name (str "query-" clj-name)
         query-fn-doc-string (str "query " clj-name " by condition ")
+        query-from-fn-name (str "query-" clj-name "-from")
+        query-from-fn-doc-string (str "query " clj-name " by condition from specified offset and returns up to limit rows ")
         get-by-fn-name (str "get-" clj-name "-by")
         get-by-fn-doc-string (str "get one " clj-name " by condition ")
         get-fn-name (str "get-" clj-name)
@@ -77,6 +79,7 @@
     (assoc domain-meta :query-fn-meta [query-fn-name query-fn-doc-string]
                        :get-by-fn-meta [get-by-fn-name get-by-fn-doc-string]
                        :get-fn-meta (when primary-key [get-fn-name get-fn-doc-string])
+                       :query-from-fn-meta [query-from-fn-name query-from-fn-doc-string]
                        :add-fn-meta [add-fn-name add-fn-doc-string]
                        :update-fn-meta [update-fn-name update-fn-doc-string]
                        :save-fn-meta (when primary-key [save-fn-name save-fn-doc-string])
@@ -99,6 +102,18 @@
           (~query-fn ~query-spec condition#))
          ([query-spec# condition#]
           (dc/query ~table-name query-spec# condition#)))))
+
+(defn generate-query-from-fn [{:keys [fields converters query-fn-meta query-from-fn-meta] :as domain-meta}]
+  (let [[query-fn-name] query-fn-meta
+        query-fn (symbol query-fn-name)
+        [query-from-fn-name query-from-fn-doc-string] query-from-fn-meta
+        query-from-fn (symbol query-from-fn-name)
+        ]
+    `(defn ~query-from-fn ~query-from-fn-doc-string
+       ([condition# order# offset# limit#]
+        (~query-from-fn ~{:fields fields :converters converters} condition# order# offset# limit#))
+       ([query-spec# condition# order# offset# limit#]
+        (~query-fn (assoc query-spec# :order order# :offset offset# :limit limit#) condition#)))))
 
 (defn generate-get-by-fn [{:keys [query-fn-meta get-by-fn-meta] :as domain-meta}]
   (let [[query-fn-name] query-fn-meta
@@ -204,7 +219,7 @@
 (def default-prepare-fns [create-meta prepare-table-name prepare-crud-fn-names])
 
 (def default-generate-fns [generate-domain generate-query-fn generate-get-by-fn generate-get-fn generate-add-fn generate-update-fn
-                           generate-save-fn generate-delete-by-fn generate-delete-fn])
+                           generate-save-fn generate-delete-by-fn generate-delete-fn generate-query-from-fn])
 
 (def ^:dynamic *prepare-fns* default-prepare-fns)
 
