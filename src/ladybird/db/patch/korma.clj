@@ -79,14 +79,20 @@
 
 (defn select
   "Params:
-       order -- see 'ladybird.db.dml/select'
+      spec -- a map contains select specification, can contain the following keys:
+          :modifier -- see 'ladybird.db.dml/select'
+          :order -- see 'ladybird.db.dml/select'
+          :db -- database connection configuration
    "
-  [ent where-clause {:keys [fields join aggregate order db] :as spec}]
+  [ent where-clause {:keys [fields join aggregate modifier order offset limit db] :as spec}]
   (let [where-fn (if-not (empty? where-clause) #(where % where-clause) identity)
         fields-fn (if fields #(apply kc/fields % fields) identity)
         aggregate-fn (if aggregate (parse-aggregate aggregate) identity)
+        modifier-fn (if modifier #(kc/modifier % modifier) identity)
         order-fn (if (empty? order) identity (make-order-fn order))
-        complete-query-fn (comp fields-fn where-fn aggregate-fn order-fn)
+        offset-fn (if offset #(kc/offset % offset) identity)
+        limit-fn (if limit #(kc/limit % limit) identity)
+        complete-query-fn (comp fields-fn where-fn aggregate-fn modifier-fn order-fn offset-fn limit-fn)
         [add-db-fn add-options-fn] (make-db-fns db)]
     (-> (kc/select* ent) add-db-fn add-options-fn complete-query-fn kc/exec)))
 

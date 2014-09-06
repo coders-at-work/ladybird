@@ -34,6 +34,9 @@
                             {:joins [[:inner :person [:name :age] '(= :person.id :person_id)]
                                      [:left [:email :e] [[:address :addr]] '(= :person.id :e.person_id)]]}
                    ;
+                   :modifier -- a string means a sql modifier in a select statement, like 'distinct'
+                                Ex.
+                                   :modifier \"distinct\"
                    :order -- a vector of order-by specs. Each element can be one of the following forms:
                                    :field-name -- means 'order by field-name asc'
                                    [:field-name :dir :another-field :another-dir ...] -- means 'order by field-name dir, another-field another-dir...', direction can be asc or desc
@@ -45,7 +48,7 @@
        database records"
   ([table where]
     (select table where {}))
-  ([table where {:keys [fields joins aggregate order] :as spec}]
+  ([table where {:keys [fields joins aggregate modifier order offset limit] :as spec}]
     (dbk/select table where (assoc-spec-with-db spec))))
 
 (defn insert!
