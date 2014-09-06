@@ -60,7 +60,7 @@
         query-fn-name (str "query-" clj-name)
         query-fn-doc-string (str "query " clj-name " by condition ")
         query-from-fn-name (str "query-" clj-name "-from")
-        query-from-fn-doc-string (str "query " clj-name " by condition and order from specified offset and returns up to limit rows ")
+        query-from-fn-doc-string (str "query " clj-name " by condition and order, returns results from specified offset and up to limit rows ")
         get-by-fn-name (str "get-" clj-name "-by")
         get-by-fn-doc-string (str "get one " clj-name " by condition ")
         get-fn-name (str "get-" clj-name)
