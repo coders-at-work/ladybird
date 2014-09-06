@@ -19,8 +19,8 @@
        fields))
 
 ;; meta data
-(defn create-select-spec [{:keys [fields] :as query-spec}]
-  (let [ret {}
+(defn create-select-spec [{:keys [fields aggregate modifier order offset limit] :as query-spec}]
+  (let [ret {:aggregate aggregate :modifier modifier :order order :offset offset :limit limit}
         fields (apply make-select-fields fields)
         ret (if-not (empty? fields) (assoc ret :fields fields) ret)
         ]
@@ -80,20 +80,28 @@
        table -- a string of table name
        condition -- a list represent the query criteria, ex. '(and (< :user-age 35) (> :user-age 20))
                     see also ladybird.data.cond
-       spec -- data model spec
+       spec -- query specification, contains information about data model and sql options
            build-in keys as following:
                :fields -- same as ladybird.db.dml/select
                :converters - A map contains fields as keys and their converters as values. 
                :aggregate -- same as ladybird.db.dml/select
+               :modifier -- same as ladybird.db.dml/select
+               :order -- see also ladybird.db.dml/select, the difference is that it accepts raw field names here
+                       Ex.
+                          :order [[(ladybird.data.cond/raw \"valid\") :desc :id :desc]]
+               :offset -- same as ladybird.db.dml/select
+               :limit -- same as ladybird.db.dml/select
    Return:
        a seq of data"
   ([table condition]
    (query table {} condition))
+  ;; TODO support aggregate
   ;; TODO use converters to translate condition, ex. for boolean values
-  ([table {:keys [fields converters aggregate join] :as spec} condition]
-         (let [{:keys [fields] :as spec} (create-select-spec spec)
+  ([table {:keys [fields converters aggregate join modifier order offset limit] :as spec} condition]
+         (let [{:keys [fields order] :as spec} (create-select-spec spec)
                fields (to-raw-result fields)
-               spec (assoc spec :fields fields)
+               order (to-raw-result order)
+               spec (assoc spec :fields fields :order order)
                convert-spec {:converters converters}
                where (condition-to-where convert-spec condition)
                ]
