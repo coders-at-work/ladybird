@@ -2,6 +2,7 @@
     (:use [clojure.walk :only (postwalk prewalk)])
     (:require [clojure.string :as string]
               [ladybird.util.string :as str]
+              [ladybird.util.keyword :as key]
               [ladybird.db.dml :as dml]
               [ladybird.data.cond :as c]
               ))
@@ -10,21 +11,57 @@
 (defn- domain-field-to-db-field [field]
        (-> (name field) str/clj-case-to-db-case keyword))
 
+(defn- alias-field [table field]
+       (key/str-keyword (name table) "." field))
+
 (defn make-select-fields
   "Translate domain fields definition to sql select [db-field alias] pairs. A field is a keyword or a [db-field alias] vector."
-  [& fields]
+  [table & fields]
   (map #(if (vector? %)
-          %
-          (vector (domain-field-to-db-field %) %))
+          [(alias-field table (first %)) (second %)] 
+          [(alias-field table (domain-field-to-db-field %)) %])
        fields))
 
 ;; meta data
-(defn create-select-spec [{:keys [fields aggregate modifier order offset limit] :as query-spec}]
+(defn prepare-select-spec [table {:keys [fields aggregate modifier join-with joins order offset limit] :as query-spec}]
   (let [ret {:aggregate aggregate :modifier modifier :order order :offset offset :limit limit}
-        fields (apply make-select-fields fields)
+        fields (apply make-select-fields table fields)
         ret (if-not (empty? fields) (assoc ret :fields fields) ret)
         ]
     ret))
+
+(defn- original-field-def [fields field]
+       (let [g (group-by keyword? fields)
+             single-fields (g true)
+             field-pairs (g false)
+             ]
+         (or ((set single-fields) field)
+             (some (fn [[f a]] (= field a)) field-pairs))))
+
+(defn- join-fields-for-field-alias-pair [fields field alias]
+       (let [field-def (original-field-def fields field)
+             o-field (if (vector? field-def) (first field-def) (domain-field-to-db-field field-def))
+             ]
+         [o-field alias]))
+
+(defn- data-model-join-fields [{:keys [fields] :as data-model} join-fields]
+       (map (fn [j-field]
+                (if (vector? j-field)
+                  (join-fields-for-field-alias-pair fields (first j-field) (second j-field)) 
+                  (original-field-def fields j-field)))
+            join-fields))
+
+(defn prepare-joins [join-with joins]
+  (when join-with
+    (reduce (fn [ret a]
+                (let [[join-type table-or-data-model join-fields on] (a joins)
+                      is-data-model (map? table-or-data-model)
+                      table (if is-data-model (:table-name table-or-data-model) table-or-data-model)
+                      join-fields (if is-data-model (data-model-join-fields table-or-data-model join-fields) join-fields)
+                      join-fields (apply make-select-fields a join-fields)
+                      ]
+                  (assoc ret a [join-type table join-fields on])))
+            {} join-with)))
 
 ;; convert
 (defn convert-value [c-type converters k v]
@@ -86,6 +123,18 @@
                :converters - A map contains fields as keys and their converters as values. 
                :aggregate -- same as ladybird.db.dml/select
                :modifier -- same as ladybird.db.dml/select
+               :joins -- a map of join specs, each key will be used as the alias of the joined table, and will be used in :join-with.
+                         Each value has the following forms:
+                             [join-type table-or-data-model fields on-clause]
+                                 join-type -- can be :inner, :left or :right
+                                 table-or-data-model -- the table name string. Or a data model map.
+                                 fields -- same as :fields above, must not prefixed by table aliases
+                                 on-clause -- on condition, its form is same as :condition above
+                             Ex. 
+                                {:joins {:p [:inner \"person\" [:name :age] '(= :p.id :person-id)]
+                                         :e [:left Email [[:address :addr]] '(= :p.id :e.person-id)]}}
+               :join-with -- a vector of join names, each name is a key in :joins. Only these join specs will be used in query.
+                             Ex. :join-with [:p :e]
                :order -- see also ladybird.db.dml/select, the difference is that it accepts raw field names here
                        Ex.
                           :order [[(ladybird.data.cond/raw \"valid\") :desc :id :desc]]
@@ -97,11 +146,13 @@
    (query table {} condition))
   ;; TODO support aggregate
   ;; TODO use converters to translate condition, ex. for boolean values
-  ([table {:keys [fields converters aggregate join modifier order offset limit] :as spec} condition]
-         (let [{:keys [fields order] :as spec} (create-select-spec spec)
+  ([table {:keys [fields converters aggregate join-with joins modifier order offset limit] :as spec} condition]
+         (let [{:keys [fields order] :as spec} (prepare-select-spec table spec)
                fields (to-raw-result fields)
                order (to-raw-result order)
+               joins (prepare-joins join-with joins)
                spec (assoc spec :fields fields :order order)
+               spec (if (empty? joins) spec (assoc spec :join-with join-with :joins joins))
                convert-spec {:converters converters}
                where (condition-to-where convert-spec condition)
                ]
