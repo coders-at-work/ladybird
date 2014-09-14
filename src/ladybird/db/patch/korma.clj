@@ -91,10 +91,12 @@
          (apply comp (reverse do-join-fns))))
 
 (defn- gather-fields [fields join-with joins]
-       (let [origin-fields (if fields fields [])]
+       (let [origin-fields (if fields fields [:korma.core/*])]
          (reduce (fn [ret a]
                      (let [[_ _ join-fields] (a joins)]
-                       (apply conj ret join-fields)))
+                       (if (empty? join-fields)
+                         ret
+                         (apply conj ret join-fields))))
                  origin-fields join-with)))
 
 (defn select
