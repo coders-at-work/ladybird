@@ -77,22 +77,46 @@
                        qu
                        (recur qu ord)))))))
 
+(defn- do-join [query join-type table on]
+       (kc/join* query join-type table (eng/pred-map (eval (eng/parse-where on)))))
+
+(defn- create-single-join-fn [alias joins]
+       (let [[join-type table _ on] (alias joins)
+              join-type (if (= :inner join-type) "" join-type)
+             ]
+         #(do-join % join-type [table (name alias)] on)))
+
+(defn- create-join-fn [join-with joins]
+       (let [do-join-fns (map #(create-single-join-fn % joins) join-with)]
+         (apply comp (reverse do-join-fns))))
+
+(defn- gather-fields [fields join-with joins]
+       (let [origin-fields (if fields fields [])]
+         (reduce (fn [ret a]
+                     (let [[_ _ join-fields] (a joins)]
+                       (apply conj ret join-fields)))
+                 origin-fields join-with)))
+
 (defn select
   "Params:
       spec -- a map contains select specification, can contain the following keys:
           :modifier -- see 'ladybird.db.dml/select'
           :order -- see 'ladybird.db.dml/select'
           :db -- database connection configuration
+          :join-with -- same as 'ladybird.db.dml/select'
+          :joins -- same as 'ladybird.db.dml/select'
    "
-  [ent where-clause {:keys [fields join aggregate modifier order offset limit db] :as spec}]
+  [ent where-clause {:keys [fields join-with joins aggregate modifier order offset limit db] :as spec}]
   (let [where-fn (if-not (empty? where-clause) #(where % where-clause) identity)
+        fields (gather-fields fields join-with joins)
         fields-fn (if fields #(apply kc/fields % fields) identity)
         aggregate-fn (if aggregate (parse-aggregate aggregate) identity)
         modifier-fn (if modifier #(kc/modifier % modifier) identity)
+        join-fn (create-join-fn join-with joins)
         order-fn (if (empty? order) identity (make-order-fn order))
         offset-fn (if offset #(kc/offset % offset) identity)
         limit-fn (if limit #(kc/limit % limit) identity)
-        complete-query-fn (comp fields-fn where-fn aggregate-fn modifier-fn order-fn offset-fn limit-fn)
+        complete-query-fn (comp fields-fn where-fn aggregate-fn modifier-fn join-fn order-fn offset-fn limit-fn)
         [add-db-fn add-options-fn] (make-db-fns db)]
     (-> (kc/select* ent) add-db-fn add-options-fn complete-query-fn kc/exec)))
 
