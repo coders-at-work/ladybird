@@ -14,12 +14,30 @@
 (defn- alias-field [table field]
        (key/str-keyword (name table) "." field))
 
+(defn- field-def-for-single-field [table field]
+       (if (c/raw? field)
+         field
+         [(alias-field table (domain-field-to-db-field field)) field]))
+
+(defn- field-def-for-field-alias [table field alias]
+       (if (c/raw? field)
+         [field alias]
+         [(alias-field table field) alias]))
+
+;; raw value processing
+(defn- to-raw-result [x]
+       (postwalk #(if (c/raw? %)
+                    (dml/raw (second %))
+                    %)
+                 x))
+
+;; TODO deal with raw fields correctly in table fields and join fields
 (defn make-select-fields
   "Translate domain fields definition to sql select [db-field alias] pairs. A field is a keyword or a [db-field alias] vector."
   [table & fields]
   (map #(if (vector? %)
-          [(alias-field table (first %)) (second %)] 
-          [(alias-field table (domain-field-to-db-field %)) %])
+          (field-def-for-field-alias table (first %) (second %))
+          (field-def-for-single-field table %))
        fields))
 
 ;; meta data
@@ -36,11 +54,16 @@
              field-pairs (g false)
              ]
          (or ((set single-fields) field)
-             (some (fn [[f a]] (= field a)) field-pairs))))
+             (some (fn [[f a]] (= field a)) field-pairs)
+             field)))
 
 (defn- join-fields-for-field-alias-pair [fields field alias]
        (let [field-def (original-field-def fields field)
-             o-field (if (vector? field-def) (first field-def) (domain-field-to-db-field field-def))
+             o-field (if (vector? field-def)
+                       (first field-def)
+                       (if (c/raw? field-def)
+                         field-def
+                         (domain-field-to-db-field field-def)))
              ]
          [o-field alias]))
 
@@ -59,6 +82,7 @@
                       table (if is-data-model (:table-name table-or-data-model) table-or-data-model)
                       join-fields (if is-data-model (data-model-join-fields table-or-data-model join-fields) join-fields)
                       join-fields (apply make-select-fields a join-fields)
+                      join-fields (to-raw-result join-fields)
                       ]
                   (assoc ret a [join-type table join-fields on])))
             {} join-with)))
@@ -90,18 +114,12 @@
                     %)
                  x))
 
-(defn- to-raw-result [x]
-       (postwalk #(if (c/raw? %)
-                    (dml/raw (second %))
-                    %)
-                 x))
-
 (defn- convert-pred-expr [converters [pred field val :as pred-expr]]
        (let [db-field (domain-field-to-db-field field)]
          (cond (= 'nil? pred) (list '= db-field nil)
-             (c/raw? val) (list pred db-field val)
-             (= 'in  pred) (list pred db-field (mapv #(if (c/raw? %) % (convert-value :out converters field %)) val))
-             :default (list pred db-field (convert-value :out converters field val)))))
+               (c/raw? val) (list pred db-field val)
+               (= 'in  pred) (list pred db-field (mapv #(if (c/raw? %) % (convert-value :out converters field %)) val))
+               :default (list pred db-field (convert-value :out converters field val)))))
 
 (defn- condition-to-where [{:keys [converters] :as spec} condition]
        (let [pred? #'c/pred?]
