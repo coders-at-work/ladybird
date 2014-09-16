@@ -12,7 +12,7 @@
        (-> (name field) str/clj-case-to-db-case keyword))
 
 (defn- alias-field [table field]
-       (key/str-keyword (name table) "." field))
+       (key/str-keyword table "." field))
 
 (defn- field-def-for-single-field [table field]
        (if (c/raw? field)
@@ -54,18 +54,20 @@
              field-pairs (g false)
              ]
          (or ((set single-fields) field)
-             (some (fn [[f a]] (= field a)) field-pairs)
+             (some (fn [[f a]] (#{a} field)) field-pairs)
              field)))
 
-(defn- join-fields-for-field-alias-pair [fields field alias]
-       (let [field-def (original-field-def fields field)
-             o-field (if (vector? field-def)
-                       (first field-def)
-                       (if (c/raw? field-def)
-                         field-def
-                         (domain-field-to-db-field field-def)))
+(defn- find-db-field-for [data-fields-def data-field]
+       (let [field-def (original-field-def data-fields-def data-field)
              ]
-         [o-field alias]))
+         (if (vector? field-def)
+           (first field-def)
+           (if (c/raw? field-def)
+             field-def
+             (domain-field-to-db-field field-def)))))
+
+(defn- join-fields-for-field-alias-pair [fields field alias]
+       [(find-db-field-for fields field) alias])
 
 (defn- data-model-join-fields [{:keys [fields] :as data-model} join-fields]
        (map (fn [j-field]
@@ -74,18 +76,23 @@
                   (original-field-def fields j-field)))
             join-fields))
 
-(defn prepare-joins [join-with joins]
+(defn- data-model? [table-or-data-model]
+       (map? table-or-data-model))
+
+(defn prepare-joins [{:keys [converters table table-fields] :as convert-spec} join-with joins]
   (when join-with
-    (reduce (fn [ret a]
+    (let [spec (assoc convert-spec :joins joins)]
+      (reduce (fn [ret a]
                 (let [[join-type table-or-data-model join-fields on] (a joins)
-                      is-data-model (map? table-or-data-model)
+                      is-data-model (data-model? table-or-data-model)
                       table (if is-data-model (:table-name table-or-data-model) table-or-data-model)
                       join-fields (if is-data-model (data-model-join-fields table-or-data-model join-fields) join-fields)
                       join-fields (apply make-select-fields a join-fields)
                       join-fields (to-raw-result join-fields)
+                      on (condition-to-where spec on)
                       ]
                   (assoc ret a [join-type table join-fields on])))
-            {} join-with)))
+            {} join-with))))
 
 ;; convert
 (defn convert-value [c-type converters k v]
@@ -114,17 +121,43 @@
                     %)
                  x))
 
+(defn- aliased-field? [field]
+       (re-find #"\." (name field)))
+
 (defn- convert-pred-expr [converters [pred field val :as pred-expr]]
-       (let [db-field (domain-field-to-db-field field)]
+       (let [;db-field (domain-field-to-db-field field)
+             db-field field
+             ]
          (cond (= 'nil? pred) (list '= db-field nil)
                (c/raw? val) (list pred db-field val)
                (= 'in  pred) (list pred db-field (mapv #(if (c/raw? %) % (convert-value :out converters field %)) val))
                :default (list pred db-field (convert-value :out converters field val)))))
 
-(defn- condition-to-where [{:keys [converters] :as spec} condition]
+(defn- alias-found-db-field [table table-field-def data-field]
+       (->> (find-db-field-for table-field-def data-field) (alias-field table)))
+
+(defn- convert-aliased-data-field-to-db-field [joins aliased-data-field]
+       (let [[alias-name data-field-name] (clojure.string/split (name aliased-data-field) #"\.")
+             alias (keyword alias-name)
+             data-field (keyword data-field-name)
+             table-or-data-model (alias joins)
+             ]
+         (if (data-model? table-or-data-model)
+           (let [data-model table-or-data-model
+                 data-field-def (:fields data-model)]
+             (alias-found-db-field alias-name data-field-def data-field))
+           aliased-data-field)))
+
+(defn- convert-data-field-to-db-field-in-condition [table table-fields joins data-field]
+       (if (aliased-field? data-field)
+         (convert-aliased-data-field-to-db-field joins data-field)
+         (alias-found-db-field table table-fields data-field)))
+
+(defn- condition-to-where [{:keys [converters table table-fields joins] :as spec} condition]
        (let [pred? #'c/pred?]
          (prewalk #(cond (pred? %) (convert-pred-expr converters %)
                          (c/raw? %) (list dml/raw (second %))
+                         (keyword? %) (convert-data-field-to-db-field-in-condition table table-fields joins %)
                          :default %)
                 condition)))
 
@@ -134,6 +167,7 @@
    Params:
        table -- a string of table name
        condition -- a list represent the query criteria, ex. '(and (< :user-age 35) (> :user-age 20))
+                    don't prefix by table alias for fields in the from-table
                     see also ladybird.data.cond
        spec -- query specification, contains information about data model and sql options
            build-in keys as following:
@@ -168,10 +202,10 @@
          (let [{:keys [fields order] :as spec} (prepare-select-spec table spec)
                fields (to-raw-result fields)
                order (to-raw-result order)
-               joins (prepare-joins join-with joins)
+               convert-spec {:table table :table-fields fields :joins joins :converters converters}
+               joins (prepare-joins convert-spec join-with joins)
                spec (assoc spec :fields fields :order order)
                spec (if (empty? joins) spec (assoc spec :join-with join-with :joins joins))
-               convert-spec {:converters converters}
                where (condition-to-where convert-spec condition)
                ]
      (->> (dml/select table where spec) (map #(convert-record-in convert-spec %))))))
@@ -202,8 +236,8 @@
        count of affected rows" 
   ([table condition datum]
    (modify! table {} condition datum))
-  ([table {:keys [converters] :as spec} condition datum]
-   (let [where (condition-to-where spec condition)
+  ([table {:keys [fields converters] :as spec} condition datum]
+   (let [where (condition-to-where (assoc spec :table table :table-fields fields) condition)
          datum (convert-record-out spec datum )]
      (dml/update! table datum where spec))))
 
@@ -215,6 +249,6 @@
        spec -- see also 'query'
    Return:
        "
-  [table {:keys [converters] :as spec} condition]
-  (let [where (condition-to-where spec condition)]
+  [table {:keys [fields converters] :as spec} condition]
+  (let [where (condition-to-where (assoc spec :table table :table-fields fields) condition)]
     (dml/delete! table where spec)))
