@@ -7,7 +7,7 @@
               [ladybird.data.cond :as c]
               ))
 
-;; convert db record related
+;; convert db field related
 (defn- domain-field-to-db-field [field]
        (-> (name field) str/clj-case-to-db-case keyword))
 
@@ -24,6 +24,12 @@
          [field alias]
          [(alias-field table field) alias]))
 
+(defn- aliased-field? [field]
+       (re-find #"\." (name field)))
+
+(defn- split-aliased-field [aliased-field]
+       (->> (clojure.string/split (name aliased-field) #"\.") (map keyword)))
+
 ;; raw value processing
 (defn- to-raw-result [x]
        (postwalk #(if (c/raw? %)
@@ -31,7 +37,6 @@
                     %)
                  x))
 
-;; TODO deal with raw fields correctly in table fields and join fields
 (defn make-select-fields
   "Translate domain fields definition to sql select [db-field alias] pairs. A field is a keyword or a [db-field alias] vector."
   [table & fields]
@@ -114,19 +119,26 @@
                 (assoc m (domain-field-to-db-field k) v)))
           {} rec))
 
+(defn- converters-from-join-data-model [{:keys [converters] :as data-model} join-fields]
+       (reduce (fn [ret join-field-def]
+                   (let [[old-field new-field] (if (vector? join-field-def) join-field-def [join-field-def join-field-def])
+                         old-field (if (c/raw? old-field) (keyword (second old-field)) old-field)
+                         new-field (if (c/raw? new-field) (keyword (second new-field)) new-field)
+                         ]
+                     (if-let [c (old-field converters)]
+                       (assoc ret new-field c)
+                       ret)))
+               {} join-fields))
+
+(defn converters-from-joins [join-with joins]
+  (reduce (fn [ret a]
+              (let [[_ table-or-data-model join-fields] (a joins)]
+                (if (data-model? table-or-data-model)
+                  (merge ret (converters-from-join-data-model table-or-data-model join-fields))
+                  ret)))
+          {} join-with))
+
 ;; prepare sql structure
-#_(defn- to-construct-raw [x]
-       (postwalk #(if (c/raw? %)
-                    (list dml/raw (second %))
-                    %)
-                 x))
-
-(defn- aliased-field? [field]
-       (re-find #"\." (name field)))
-
-(defn- split-aliased-field [aliased-field]
-       (->> (clojure.string/split (name aliased-field) #"\.") (map keyword)))
-
 (defn- convert-field-value [converters joins field val]
        (if-not (aliased-field? field)
                (convert-value :out converters field val)
@@ -144,8 +156,7 @@
              (= 'in  pred) (list pred field (mapv #(if (c/raw? %) % (convert-field-value converters joins field %)) val))
              (keyword? field) (list pred field (convert-field-value converters joins field val))
              (keyword? val) (list pred val (convert-field-value converters joins val field))
-             :default (list pred field val)
-             ))
+             :default (list pred field val)))
 
 (defn- alias-found-db-field [table table-field-def data-field]
        (->> (find-db-field-for table-field-def data-field) (alias-field table)))
@@ -171,7 +182,7 @@
                          (c/raw? %) (list dml/raw (second %))
                          (keyword? %) (convert-data-field-to-db-field-in-condition table table-fields joins %)
                          :default %)
-                condition)))
+                  condition)))
 
 ;; crud
 (defn query
@@ -209,18 +220,19 @@
   ([table condition]
    (query table {} condition))
   ;; TODO support aggregate
-  ;; TODO use converters to translate condition, ex. for boolean values
   ([table {:keys [fields converters aggregate join-with joins modifier order offset limit] :as spec} condition]
          (let [{:keys [fields order] :as spec} (prepare-select-spec table spec)
                fields (to-raw-result fields)
                order (to-raw-result order)
-               convert-spec {:table table :table-fields fields :joins joins :converters converters}
-               joins (prepare-joins convert-spec join-with joins)
+               cond-convert-spec {:table table :table-fields fields :joins joins :converters converters}
+               joins-converters (converters-from-joins join-with joins)
+               rec-convert-spec {:converters (merge converters joins-converters)}
+               joins (prepare-joins cond-convert-spec join-with joins)
                spec (assoc spec :fields fields :order order)
                spec (if (empty? joins) spec (assoc spec :join-with join-with :joins joins))
-               where (condition-to-where convert-spec condition)
+               where (condition-to-where cond-convert-spec condition)
                ]
-     (->> (dml/select table where spec) (map #(convert-record-in convert-spec %))))))
+     (->> (dml/select table where spec) (map #(convert-record-in rec-convert-spec %))))))
 
 (defn add!
   "add data
