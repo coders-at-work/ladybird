@@ -139,7 +139,7 @@
           {} join-with))
 
 ;; prepare sql structure
-(defn- convert-field-value [converters joins field val]
+(defn- convert-condition-field-value [converters joins field val]
        (if-not (aliased-field? field)
                (convert-value :out converters field val)
                (let [[alias data-field] (split-aliased-field field)
@@ -153,9 +153,9 @@
        (cond (= 'nil? pred) (list '= field nil)
              (and (keyword? field) (keyword? val)) (list pred field val)
              (or (c/raw? field) (c/raw? val)) (list pred field val)
-             (= 'in  pred) (list pred field (mapv #(if (c/raw? %) % (convert-field-value converters joins field %)) val))
-             (keyword? field) (list pred field (convert-field-value converters joins field val))
-             (keyword? val) (list pred val (convert-field-value converters joins val field))
+             (= 'in  pred) (list pred field (mapv #(if (c/raw? %) % (convert-condition-field-value converters joins field %)) val))
+             (keyword? field) (list pred field (convert-condition-field-value converters joins field val))
+             (keyword? val) (list pred val (convert-condition-field-value converters joins val field))
              :default (list pred field val)))
 
 (defn- alias-found-db-field [table table-field-def data-field]
