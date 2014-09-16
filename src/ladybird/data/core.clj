@@ -124,28 +124,40 @@
 (defn- aliased-field? [field]
        (re-find #"\." (name field)))
 
-(defn- convert-pred-expr [converters [pred field val :as pred-expr]]
-       (let [;db-field (domain-field-to-db-field field)
-             db-field field
-             ]
-         (cond (= 'nil? pred) (list '= db-field nil)
-               (c/raw? val) (list pred db-field val)
-               (= 'in  pred) (list pred db-field (mapv #(if (c/raw? %) % (convert-value :out converters field %)) val))
-               :default (list pred db-field (convert-value :out converters field val)))))
+(defn- split-aliased-field [aliased-field]
+       (->> (clojure.string/split (name aliased-field) #"\.") (map keyword)))
+
+(defn- convert-field-value [converters joins field val]
+       (if-not (aliased-field? field)
+               (convert-value :out converters field val)
+               (let [[alias data-field] (split-aliased-field field)
+                     [_ table-or-data-model] (alias joins)
+                     ]
+                 (if-not (data-model? table-or-data-model)
+                         val
+                         (convert-value :out (:converters table-or-data-model) data-field val)))))
+
+(defn- convert-pred-expr [converters joins [pred field val :as pred-expr]]
+       (cond (= 'nil? pred) (list '= field nil)
+             (and (keyword? field) (keyword? val)) (list pred field val)
+             (or (c/raw? field) (c/raw? val)) (list pred field val)
+             (= 'in  pred) (list pred field (mapv #(if (c/raw? %) % (convert-field-value converters joins field %)) val))
+             (keyword? field) (list pred field (convert-field-value converters joins field val))
+             (keyword? val) (list pred val (convert-field-value converters joins val field))
+             :default (list pred field val)
+             ))
 
 (defn- alias-found-db-field [table table-field-def data-field]
        (->> (find-db-field-for table-field-def data-field) (alias-field table)))
 
 (defn- convert-aliased-data-field-to-db-field [joins aliased-data-field]
-       (let [[alias-name data-field-name] (clojure.string/split (name aliased-data-field) #"\.")
-             alias (keyword alias-name)
-             data-field (keyword data-field-name)
-             table-or-data-model (alias joins)
+       (let [[alias data-field] (split-aliased-field aliased-data-field)
+             [_ table-or-data-model] (alias joins)
              ]
          (if (data-model? table-or-data-model)
            (let [data-model table-or-data-model
                  data-field-def (:fields data-model)]
-             (alias-found-db-field alias-name data-field-def data-field))
+             (alias-found-db-field alias data-field-def data-field))
            aliased-data-field)))
 
 (defn- convert-data-field-to-db-field-in-condition [table table-fields joins data-field]
@@ -155,7 +167,7 @@
 
 (defn- condition-to-where [{:keys [converters table table-fields joins] :as spec} condition]
        (let [pred? #'c/pred?]
-         (prewalk #(cond (pred? %) (convert-pred-expr converters %)
+         (prewalk #(cond (pred? %) (convert-pred-expr converters joins %)
                          (c/raw? %) (list dml/raw (second %))
                          (keyword? %) (convert-data-field-to-db-field-in-condition table table-fields joins %)
                          :default %)
