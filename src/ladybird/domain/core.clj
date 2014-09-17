@@ -11,7 +11,7 @@
   "Returns real fields used by optimistic locking, which is specified by meta"
   [{:keys [fields optimistic-locking-fields] :as meta}]
   (cond (some #{:*} optimistic-locking-fields) fields
-        (not-empty optimistic-locking-fields) optimistic-locking-fields
+        (seq optimistic-locking-fields) optimistic-locking-fields
         (some #{:version} fields) [:version]
         (some #{:last-update} fields) [:last-update]
         :default optimistic-locking-fields)
@@ -135,10 +135,10 @@
          (~get-by-fn (list '~'= ~primary-key pk#))
          ))))
 
-(defn add-record! [{:keys [table-name db-maintain-fields add-fixed converters] :as spec} & recs]
+(defn add-record! [{:keys [table-name fields db-maintain-fields add-fixed converters] :as spec} & recs]
   (let [recs (map #(-> (apply dissoc % db-maintain-fields) (merge add-fixed)) recs)
         ]
-    (apply dc/add! table-name {:converters converters} recs)))
+    (apply dc/add! table-name {:fields fields :converters converters} recs)))
 
 (defn generate-add-fn [{:keys [domain-name add-fn-meta] :as domain-meta}]
   (let [[add-fn-name add-fn-doc-string] add-fn-meta
@@ -147,13 +147,13 @@
     `(defn ~add-fn ~add-fn-doc-string [& recs#]
        (apply add-record! ~(symbol domain-name) recs#))))
 
-(defn update-record! [{:keys [table-name db-maintain-fields immutable-fields converters] :as spec} condition datum]
+(defn update-record! [{:keys [table-name fields db-maintain-fields immutable-fields converters] :as spec} condition datum]
   (let [datum (apply dissoc datum db-maintain-fields)
         datum (apply dissoc datum immutable-fields)
         ]
     (if (empty? datum)
       0
-      (dc/modify! table-name {:converters converters} condition datum))))
+      (dc/modify! table-name {:fields fields :converters converters} condition datum))))
 
 (defn generate-update-fn [{:keys [domain-name update-fn-meta] :as domain-meta}]
   (let [[update-fn-name update-fn-doc-string] update-fn-meta
