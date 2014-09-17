@@ -59,7 +59,7 @@
              field-pairs (g false)
              ]
          (or ((set single-fields) field)
-             (some (fn [[f a]] (#{a} field)) field-pairs)
+             (some (fn [[f a :as field-def]] (when (= a field) field-def)) field-pairs)
              field)))
 
 (defn- find-db-field-for [data-fields-def data-field]
@@ -83,6 +83,8 @@
 
 (defn- data-model? [table-or-data-model]
        (map? table-or-data-model))
+
+(declare condition-to-where)
 
 (defn prepare-joins [{:keys [converters table table-fields] :as convert-spec} join-with joins]
   (when join-with
@@ -110,13 +112,14 @@
               (assoc m k (convert-value :in converters k v)))
           {} rec))
 
-(defn convert-record-out [{:keys [converters] :as spec} rec]
+(defn convert-record-out [{:keys [fields converters] :as spec} rec]
   (reduce (fn [m [k v]]
               (let [v (if (c/raw? v)
                         (dml/raw (second v))
                         (convert-value :out converters k v))
+                    db-k (find-db-field-for fields k)
                     ]
-                (assoc m (domain-field-to-db-field k) v)))
+                (assoc m db-k v)))
           {} rec))
 
 (defn- converters-from-join-data-model [{:keys [converters] :as data-model} join-fields]
@@ -221,10 +224,10 @@
    (query table {} condition))
   ;; TODO support aggregate
   ([table {:keys [fields converters aggregate join-with joins modifier order offset limit] :as spec} condition]
-         (let [{:keys [fields order] :as spec} (prepare-select-spec table spec)
+         (let [cond-convert-spec {:table table :table-fields fields :joins joins :converters converters}
+               {:keys [fields order] :as spec} (prepare-select-spec table spec)
                fields (to-raw-result fields)
                order (to-raw-result order)
-               cond-convert-spec {:table table :table-fields fields :joins joins :converters converters}
                joins-converters (converters-from-joins join-with joins)
                rec-convert-spec {:converters (merge converters joins-converters)}
                joins (prepare-joins cond-convert-spec join-with joins)
@@ -244,7 +247,7 @@
    Return:"
   ([table rec]
    (add! table {} rec))
-  ([table {:keys [converters] :as spec} & recs]
+  ([table {:keys [fields converters] :as spec} & recs]
    (dml/insert! table
                 (map #(convert-record-out spec %) recs)
                 spec)))
