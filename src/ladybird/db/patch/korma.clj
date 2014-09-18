@@ -102,6 +102,7 @@
 (defn select
   "Params:
       spec -- a map contains select specification, can contain the following keys:
+          :fields -- same as korma.core
           :modifier -- see 'ladybird.db.dml/select'
           :order -- see 'ladybird.db.dml/select'
           :db -- database connection configuration

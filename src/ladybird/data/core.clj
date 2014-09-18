@@ -197,7 +197,10 @@
                     see also ladybird.data.cond
        spec -- query specification, contains information about data model and sql options
            build-in keys as following:
-               :fields -- same as ladybird.db.dml/select
+               :fields -- see also ladybird.db.dml/select
+                             Ex.
+                                {:fields [:id :first-name [:lastName :last-name]]}
+                                {:fields [:id :age [(ladybird.data.cond/raw \"age+1\") :next-year-age]]}
                :converters - A map contains fields as keys and their converters as values. 
                :aggregate -- same as ladybird.db.dml/select
                :modifier -- same as ladybird.db.dml/select

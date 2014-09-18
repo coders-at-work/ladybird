@@ -32,6 +32,8 @@
                                  :optimistic-locking-fields contains :*, then all fields will be used by optimistic locking.
    :converters -- a map specifying fields converters.
 
+   In addition to the keys above, all keys used by ladybird.data.core/query can be added to domain meta.
+
    Ex.
       {:domain-name \"Pro\"
        :fields [:id :name :age :create-time :last-update]
