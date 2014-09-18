@@ -1,6 +1,7 @@
 (ns ladybird.domain.core
     (:require [ladybird.util.string :as str]
               [ladybird.data.core :as dc]
+              [ladybird.data.cond :as c]
               ))
 
 ;; domain meta preparing functions
@@ -135,8 +136,16 @@
          (~get-by-fn (list '~'= ~primary-key pk#))
          ))))
 
+(defn- data-field [[_ df :as field-def]]
+       (if (c/raw? df)
+         (keyword (second df))
+         df))
+
+(defn- retain-fields [fields-def rec]
+       (->> (map #(if (vector? %) (data-field %) %) fields-def) (select-keys rec)))
+
 (defn add-record! [{:keys [table-name fields db-maintain-fields add-fixed converters] :as spec} & recs]
-  (let [recs (map #(-> (apply dissoc % db-maintain-fields) (merge add-fixed)) recs)
+  (let [recs (map #(-> (apply dissoc (retain-fields fields %) db-maintain-fields) (merge add-fixed)) recs)
         ]
     (apply dc/add! table-name {:fields fields :converters converters} recs)))
 
@@ -148,7 +157,8 @@
        (apply add-record! ~(symbol domain-name) recs#))))
 
 (defn update-record! [{:keys [table-name fields db-maintain-fields immutable-fields converters] :as spec} condition datum]
-  (let [datum (apply dissoc datum db-maintain-fields)
+  (let [datum (retain-fields fields datum)
+        datum (apply dissoc datum db-maintain-fields)
         datum (apply dissoc datum immutable-fields)
         ]
     (if (empty? datum)
