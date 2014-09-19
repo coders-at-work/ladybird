@@ -238,7 +238,13 @@
 (def ^:dynamic *generate-fns* default-generate-fns)
 
 (defmacro defdomain
-  "
+  "Define the data structure of the domain object. You can create your own version of defdomain by bingding *prepare-fns* and *generate-fns*.
+
+   Params:
+       domain-name -- the name of the domain, you can refer the data structure by the var named by it after defined the domain 
+       fields -- the fields definition. See ladybird.domain.core/create-meta for the format accepted by the default implementation.
+       meta-data -- other meta data to define the domain. See ladybird.domain.core/create-meta for which meta data is accepted by the default implementation.
+   
    Ex.
       (use 'ladybird.data.db-converter)
       (defdomain Tmp [:id :create-time :last-update :valid]
