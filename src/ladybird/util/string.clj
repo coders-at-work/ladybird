@@ -21,6 +21,13 @@
 (defn db-case-to-clj-case [s]
   (-> s string/lower-case underscore-to-hyphen))
 
+(defn qualify-name
+  "
+   Qualify (name x) by the name of *ns*
+  "
+  [x]
+  (str (ns-name *ns*) "/" (name x)))
+
 ;; convert between Date and String
 (def datetime-format-str "yyyy-MM-dd HH:mm:ss")
 (def ^{:private true} datetime-format (SimpleDateFormat. datetime-format-str))
