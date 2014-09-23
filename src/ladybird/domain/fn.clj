@@ -12,10 +12,10 @@
    Ex.    
       (def-field-value-preds :status)
 
-      (is-status? :active a-domain-object)
+      (is-status=? :active a-domain-object)
   "
   [field]
-  `(defmacro ~(str-symbol "is-" (name field) "?") [value# domain-obj#]
+  `(defmacro ~(str-symbol "is-" (name field) "=?") [value# domain-obj#]
      `(= ~value# (~~field ~domain-obj#))))
 
 (defn compare-order-by [order-def op v1 v2]
