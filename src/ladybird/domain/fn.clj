@@ -27,6 +27,7 @@
 
 (defmacro def-field-order-preds
   "
+   Define functions to compare the order of a domain object field with a value, or the order of another domain objcect field.
    Ex.
       (def-field-order-preds :trade-progress trade-progress-order)
 
@@ -52,7 +53,7 @@
    Same as the following code:
                        (do
                          (def-field-value-pred field)
-                         (def-field-order-preds field))
+                         (def-field-order-preds field order-def))
   "
   [field order-def]
   `(do
