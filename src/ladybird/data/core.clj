@@ -152,9 +152,20 @@
                          val
                          (convert-value :out (:converters table-or-data-model) data-field val)))))
 
-(defn- convert-pred-expr [converters joins [pred field val :as pred-expr]]
+(defn- field? [fields-def field-or-value]
+       (if (aliased-field? field-or-value)
+         true
+         ((set (map #(if (vector? %) (second %) %) fields-def)) field-or-value)))
+
+(defn- transform-both-keywords-expr [fields converters joins [pred field val :as pred-expr]]
+       (let [f (if (field? fields field) field (convert-condition-field-value converters joins val field))
+             v (if (field? fields val) val (convert-condition-field-value converters joins field val))
+             ]
+         (list pred f v)))
+
+(defn- convert-pred-expr [fields converters joins [pred field val :as pred-expr]]
        (cond (= 'nil? pred) (list '= field nil)
-             (and (keyword? field) (keyword? val)) (list pred field val)
+             (and (keyword? field) (keyword? val)) (transform-both-keywords-expr fields converters joins pred-expr)
              (or (c/raw? field) (c/raw? val)) (list pred field val)
              (= 'in  pred) (list pred field (mapv #(if (c/raw? %) % (convert-condition-field-value converters joins field %)) val))
              (keyword? field) (list pred field (convert-condition-field-value converters joins field val))
@@ -181,7 +192,7 @@
 
 (defn- condition-to-where [{:keys [converters table table-fields joins] :as spec} condition]
        (let [pred? #'c/pred?]
-         (prewalk #(cond (pred? %) (convert-pred-expr converters joins %)
+         (prewalk #(cond (pred? %) (convert-pred-expr table-fields converters joins %)
                          (c/raw? %) (list dml/raw (second %))
                          (keyword? %) (convert-data-field-to-db-field-in-condition table table-fields joins %)
                          :default %)
