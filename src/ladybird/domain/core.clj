@@ -2,6 +2,7 @@
     (:require [ladybird.util.string :as str]
               [ladybird.data.core :as dc]
               [ladybird.data.cond :as c]
+              [ladybird.data.validate-core :as v]
               ))
 
 ;; domain meta preparing functions
@@ -89,6 +90,16 @@
                        :delete-by-fn-meta [delete-by-fn-name delete-by-fn-doc-string]
                        :delete-fn-meta (when primary-key [delete-fn-name delete-fn-doc-string])
                        )))
+
+(defn prepare-validate-fn-names [{:keys [domain-name] :as domain-meta}]
+  (let [clj-name (to-clj-name domain-name)
+        validator-name (str clj-name "-validator")
+        validate-fn-name (str "validate-" clj-name)
+        validate-fn-doc-string (str "validate a " clj-name " record")
+        check-fn-name (str "check-" clj-name)
+        check-fn-doc-string (str "validate a " clj-name " record and throw exception if validating failed")
+        ]
+    (assoc domain-meta :validate-fn-meta [validator-name validate-fn-name validate-fn-doc-string check-fn-name check-fn-doc-string])))
 
 ;; domain generating functions
 (defn generate-domain [{:keys [domain-name] :as domain-meta}]
@@ -227,11 +238,31 @@
            0
            (#'ladybird.domain.core/delete-fn-impl ~get-fn ~delete-by-fn (~primary-key ~'rec) ~condition))))))
 
+(defn generate-validator [{:keys [domain-name validate-fn-meta] :as domain-meta}]
+  (let [[validator-name] validate-fn-meta]
+    `(def ~(symbol validator-name) (v/m-validator (:validate ~(symbol domain-name))))))
+
+(defn generate-validate-fn [{:keys [validate-fn-meta] :as domain-meta}]
+  (let [[validator-name validate-fn-name validate-fn-doc-string] validate-fn-meta]
+    `(defn ~(symbol validate-fn-name) ~validate-fn-doc-string [rec#]
+       (~(symbol validator-name) rec#))))
+
+(defn check-validate-result [validate-result]
+  (let [msgs (v/err-msgs validate-result)]
+    (when msgs (throw (RuntimeException. (clojure.string/join ", " msgs))))))
+
+;; TODO: i18n 
+(defn generate-check-fn [{:keys [validate-fn-meta] :as domain-meta}]
+  (let [[_ validate-fn-name _ check-fn-name check-fn-doc-string] validate-fn-meta]
+    `(defn ~(symbol check-fn-name) ~check-fn-doc-string [rec#]
+       (check-validate-result (~(symbol validate-fn-name) rec#)))))
+
 ;; define domain
-(def default-prepare-fns [create-meta prepare-table-name prepare-crud-fn-names])
+(def default-prepare-fns [create-meta prepare-table-name prepare-crud-fn-names prepare-validate-fn-names])
 
 (def default-generate-fns [generate-domain generate-query-fn generate-get-by-fn generate-get-fn generate-add-fn generate-update-fn
-                           generate-save-fn generate-delete-by-fn generate-delete-fn generate-query-from-fn])
+                           generate-save-fn generate-delete-by-fn generate-delete-fn generate-query-from-fn generate-validator
+                           generate-validate-fn generate-check-fn])
 
 (def ^:dynamic *prepare-fns* default-prepare-fns)
 
