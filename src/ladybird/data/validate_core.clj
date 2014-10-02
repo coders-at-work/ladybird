@@ -30,10 +30,10 @@
    Validate a data map according to a validator map.
   "
   [vmap m]
-  (->> (select-keys m (keys vmap))
-       (map (fn [[k v]] (->> (vmap k) list flatten
-                             (apply validate v)
-                             (vector k))))
+  (->> (map (fn [[n v]] (->> v list flatten
+                             (apply validate (m n))
+                             (vector n)))
+            vmap)
        (into {})))
 
 (defn m-validator
