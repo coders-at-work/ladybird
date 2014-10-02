@@ -237,6 +237,7 @@
   ([table condition]
    (query table {} condition))
   ;; TODO support aggregate
+  ;; TODO: check allowed fields in condition
   ([table {:keys [fields converters aggregate join-with joins modifier order offset limit] :as spec} condition]
          (let [cond-convert-spec {:table table :table-fields fields :joins joins :converters converters}
                {:keys [fields order] :as spec} (prepare-select-spec table spec)
