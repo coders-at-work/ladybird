@@ -308,16 +308,30 @@
 
    Params:
        domain-name -- the name of the domain, you can refer the data structure by the var named by it after defined the domain 
-       fields -- the fields definition. See ladybird.domain.core/create-meta for the format accepted by the default implementation.
+       fields -- the fields definition. See also ladybird.domain.core/create-meta for the simplest format accepted by the default implementation.
+                 The definition can contain field converter and validators. The form is: :field, :field converter, :field converter validator-or-validators. Converter and validator-or-validators can be _, means ignoring it.
+                 Ex.
+                    [:a :b :c]
+                    [:a BOOL :b _ not-nil :c :d BOOL [not-nil is-boolean]]
        meta-data -- other meta data to define the domain. See ladybird.domain.core/create-meta for which meta data is accepted by the default implementation.
    
    Ex.
       (use 'ladybird.data.db-converter)
+      (use 'ladybird.data.build-in-validator)
       (defdomain Tmp [:id :create-time :last-update :valid]
                      {:db-maintain-fields [:id :last-update]
                       :add-fixed {:create-time nil}
                       :immutable-fields [:create-time]
-                      :converters {:valid BOOL}})
+                      :converters {:valid BOOL}
+                      :validate {:valid [not-nil is-boolean]}})
+      same as above:
+      (defdomain Tmp [:id
+                      :create-time
+                      :last-update
+                      :valid BOOL [not-nil is-boolean]]
+                     {:db-maintain-fields [:id :last-update]
+                      :add-fixed {:create-time nil}
+                      :immutable-fields [:create-time]})
   "
   ([domain-name fields-def]
    `(defdomain ~domain-name ~fields-def {}))
