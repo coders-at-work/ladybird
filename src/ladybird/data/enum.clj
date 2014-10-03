@@ -1,11 +1,19 @@
 (ns ladybird.data.enum
     (:use ladybird.data.converter-core
           [ladybird.data.order :only (make-order)]
-          ))
+          [ladybird.util.symbol :only (str-symbol)]
+          [ladybird.util.string :only (qualify-name)])
+    (:require [ladybird.data.validate-core :as v]
+              [ladybird.data.build-in-validator :as b]))
 
 (defmacro defenum [name k1 v1 & kvs]
-  (let [kvs (apply vector k1 v1 kvs)]
-    `(def ~name (value-converter ~kvs))))
+  (let [kvs (apply vector k1 v1 kvs)
+        validator (str-symbol "enum:" name)
+        i18n-msg-key (keyword (qualify-name name))
+        ]
+    `(do
+       (def ~name (value-converter ~kvs))
+       (def ~validator (b/enum-of ~name ~i18n-msg-key)))))
 
 (defn- ordered-kvs-to-order-es [ordered-kvs]
        (let [parts (partition-by vector? ordered-kvs)]
