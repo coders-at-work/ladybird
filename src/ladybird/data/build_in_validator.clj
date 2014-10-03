@@ -2,7 +2,9 @@
   (:use [clojure.string :only (blank?)]
         ;[util.core-utils :only (defn_)]
         ;[util.str-utils :only (is-datetime-str? is-date-str?)]
-        ladybird.data.validate-core))
+        ladybird.data.validate-core)
+  (:require [ladybird.data.converter-core :as c])
+  )
 
 (defn value-in
   "
@@ -33,8 +35,8 @@
 
 (def-validator is-number (nil-or-satisfied number?) "%s should be number")
 
-#_(defn enum-of [e]
-  (nil-or-satisfied (apply value-in (vals e))))
+(defn enum-of [e-converter i18n-msg-key]
+  (->> (c/out-fn e-converter) keys (apply value-in i18n-msg-key) nil-or-satisfied))
 
 (def is-boolean (nil-or-satisfied (value-in ::is-boolean true false)))
 
