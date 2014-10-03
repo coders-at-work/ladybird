@@ -19,6 +19,40 @@
         :default optimistic-locking-fields)
   )
 
+(defn- create-field-meta [field [converter validate]]
+       (let [field (if (vector? field) (second field) field)
+             ret (when (and converter
+                            (not= '_ converter))
+                   {:converters {field converter}})
+             ret (if (and validate
+                          (not= '_ validate))
+                   (assoc ret :validate {field validate})
+                   ret)
+             ]
+         ret))
+
+(defn- field-name-def? [x]
+       (or (keyword? x)
+           (and (vector? x)
+                (= 2 (count x))
+                (keyword? (first x))
+                (keyword? (second x)))))
+
+(defn- parse-fields-def [fields-def]
+       (let [fields-def (partition-by field-name-def? fields-def)
+             fields-def (partition 2 2 nil fields-def)
+             ]
+         (reduce (fn [ret [fields f-def]]
+                     (let [ret (apply update-in ret [:fields] conj fields)
+                           f (last fields)
+                           {:keys [converters validate]} (create-field-meta f f-def)
+                           ret (if converters (update-in ret [:converters] merge converters) ret)
+                           ret (if validate (update-in ret [:validate] merge validate) ret)
+                           ]
+                       ret))
+                 {:fields []}
+                 fields-def)))
+
 ;; TODO add :update-fix key
 (defn create-meta
   "Create basic meta data from arguments of defdomain. Default meta keys include:
@@ -44,10 +78,11 @@
        :immutable-fields [:create-time]
       }
    "
-  [domain-name fields meta-data]
-  (let [primary-key (when (some #{:id} fields) :id)]
-    (merge {:domain-name (name domain-name)
-            :fields fields
+  [domain-name fields-def meta-data]
+  (let [{:keys [fields] :as org-meta} (parse-fields-def fields-def)
+        primary-key (when (some #{:id} fields) :id)]
+    (merge org-meta
+           {:domain-name (name domain-name)
             :primary-key primary-key
             :db-maintain-fields (when (= primary-key :id) [:id])
             }
@@ -284,11 +319,11 @@
                       :immutable-fields [:create-time]
                       :converters {:valid BOOL}})
   "
-  ([domain-name fields]
-   `(defdomain ~domain-name ~fields {}))
-  ([domain-name fields meta-data]
+  ([domain-name fields-def]
+   `(defdomain ~domain-name ~fields-def {}))
+  ([domain-name fields-def meta-data]
    (let [prepare-fn (->> (reverse *prepare-fns*) (apply comp))
-         domain-meta (prepare-fn domain-name fields meta-data)
+         domain-meta (prepare-fn domain-name fields-def meta-data)
          body (map #(% domain-meta) *generate-fns*)
          ]
      `(do
