@@ -11,8 +11,10 @@
   Create a value-in validator.
   "
   [i18n-msg-key v1 & vs]
-  (let [vals (into [v1] vs)]
-        (validator (set vals) i18n-msg-key (str "%s value should be in " vals))))
+  (let [vals (into [v1] vs)
+        val-set (set vals)
+        ]
+        (validator #(contains? val-set %) i18n-msg-key (str "%s value should be in " vals))))
 
 (defn nil-or-satisfied
   "
