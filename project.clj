@@ -4,7 +4,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.4.0"]
-                 ;[korma "0.3.0-RC5"]
+                 [org.clojure/tools.logging "0.3.1"]
                  [korma "0.3.2"]
                  [mysql/mysql-connector-java "5.1.25"]
                  ])
