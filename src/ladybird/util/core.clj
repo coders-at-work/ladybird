@@ -20,3 +20,6 @@
        (defmacro ~(sym/str-symbol "with-" name) [~'name & ~'body]
          `(binding [~(sym/str-symbol '~(str *ns*) "/" '~var-name) ~~'name]
             ~@~'body)))))
+
+(defn get-stack-trace-str [e]
+  (apply str (.getMessage e) "\n" (map #(str % "\n") (.getStackTrace e))))
