@@ -19,10 +19,18 @@
 
 (def ^:dynamic *generate-fns* [encapsule-body catch-forms gen-defn-with-catch-point] )
 
-(defmacro defsvc
+#_(defmacro defsvc
   ""
   [svc-name doc-string prototype options & body]
   (let [generate-fn (->> (reverse *generate-fns*) (apply comp))
         meta {:svc svc-name :doc-string doc-string :prototype prototype :options options :body body}
         ]
     `~(generate-fn meta)))
+
+(defmacro defsvc
+  "You can create your own version of defsvc by bingding *generate-fns*."
+  [svc-name doc-string prototype options & body]
+  `(let [~'generate-fn (->> (reverse *generate-fns*) (apply comp))
+         ~'meta {:svc '~svc-name :doc-string '~doc-string :prototype '~prototype :options '~options :body '~body}
+         ]
+     (eval (~'generate-fn ~'meta))))
