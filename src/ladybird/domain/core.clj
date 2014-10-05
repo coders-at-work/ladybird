@@ -282,15 +282,11 @@
     `(defn ~(symbol validate-fn-name) ~validate-fn-doc-string [rec#]
        (~(symbol validator-name) rec#))))
 
-(defn check-validate-result [validate-result]
-  (let [msgs (v/err-msgs validate-result)]
-    (when msgs (throw (RuntimeException. (clojure.string/join ", " msgs))))))
-
-;; TODO: i18n 
+;; TODO: i18n? 
 (defn- generate-check-fn [{:keys [validate-fn-meta] :as domain-meta}]
   (let [[_ validate-fn-name _ check-fn-name check-fn-doc-string] validate-fn-meta]
     `(defn ~(symbol check-fn-name) ~check-fn-doc-string [rec#]
-       (check-validate-result (~(symbol validate-fn-name) rec#)))))
+       (v/check-validate-result (~(symbol validate-fn-name) rec#)))))
 
 ;; define domain
 (def ^:private prepare-fns [create-meta prepare-table-name prepare-crud-fn-names prepare-validate-fn-names])

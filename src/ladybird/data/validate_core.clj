@@ -69,3 +69,15 @@
          msgs (apply concat msgs)
         ]
     (if (empty? msgs) nil msgs))))
+
+(defn check-validate-result
+  "
+  Get error messages from the validate result. If there are error messages, throw runtime exception with it; otherwise return nil.
+  "
+  ([validate-result]
+   (check-validate-result {} validate-result))
+  ([kmap validate-result]
+   (check-validate-result (i/locale) kmap validate-result))
+  ([locale kmap validate-result]
+   (let [msgs (err-msgs locale kmap validate-result)]
+     (when msgs (throw (RuntimeException. (clojure.string/join ", " msgs)))))))
