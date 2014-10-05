@@ -6,10 +6,10 @@
               ))
 
 ;; domain meta preparing functions
-(defn to-clj-name [domain-name]
+(defn- to-clj-name [domain-name]
   (str/clj-case domain-name))
 
-(defn optimistic-locking-fields
+(defn- optimistic-locking-fields
   "Returns real fields used by optimistic locking, which is specified by meta"
   [{:keys [fields optimistic-locking-fields] :as meta}]
   (cond (some #{:*} optimistic-locking-fields) fields
@@ -54,7 +54,7 @@
                  fields-def)))
 
 ;; TODO add :update-fix key
-(defn create-meta
+(defn- create-meta
   "Create basic meta data from arguments of defdomain. Default meta keys include:
    :domain-name
    :fields
@@ -88,13 +88,13 @@
             }
            meta-data)))
 
-(defn prepare-table-name [{:keys [domain-name table-name] :as domain-meta}]
+(defn- prepare-table-name [{:keys [domain-name table-name] :as domain-meta}]
   (assoc domain-meta
          :table-name
          (or table-name
              (-> (to-clj-name domain-name) str/hyphen-to-underscore))))
 
-(defn prepare-crud-fn-names [{:keys [primary-key domain-name table-name] :as domain-meta}]
+(defn- prepare-crud-fn-names [{:keys [primary-key domain-name table-name] :as domain-meta}]
   (let [clj-name (to-clj-name domain-name)
         query-fn-name (str "query-" clj-name)
         query-fn-doc-string (str "query " clj-name " by condition ")
@@ -126,7 +126,7 @@
                        :delete-fn-meta (when primary-key [delete-fn-name delete-fn-doc-string])
                        )))
 
-(defn prepare-validate-fn-names [{:keys [domain-name] :as domain-meta}]
+(defn- prepare-validate-fn-names [{:keys [domain-name] :as domain-meta}]
   (let [clj-name (to-clj-name domain-name)
         validator-name (str clj-name "-validator")
         validate-fn-name (str "validate-" clj-name)
@@ -137,11 +137,11 @@
     (assoc domain-meta :validate-fn-meta [validator-name validate-fn-name validate-fn-doc-string check-fn-name check-fn-doc-string])))
 
 ;; domain generating functions
-(defn generate-domain [{:keys [domain-name] :as domain-meta}]
+(defn- generate-domain [{:keys [domain-name] :as domain-meta}]
   `(def ~(symbol domain-name) ~domain-meta)
   )
 
-(defn generate-query-fn [{:keys [table-name fields query-fn-meta converters] :as domain-meta}]
+(defn- generate-query-fn [{:keys [table-name fields query-fn-meta converters] :as domain-meta}]
   (let [[query-fn-name query-fn-doc-string] query-fn-meta
         query-fn (symbol query-fn-name)
         query-spec {:fields fields :converters converters}
@@ -152,7 +152,7 @@
          ([query-spec# condition#]
           (dc/query ~table-name query-spec# condition#)))))
 
-(defn generate-query-from-fn [{:keys [fields converters query-fn-meta query-from-fn-meta] :as domain-meta}]
+(defn- generate-query-from-fn [{:keys [fields converters query-fn-meta query-from-fn-meta] :as domain-meta}]
   (let [[query-fn-name] query-fn-meta
         query-fn (symbol query-fn-name)
         [query-from-fn-name query-from-fn-doc-string] query-from-fn-meta
@@ -164,7 +164,7 @@
        ([query-spec# condition# order# offset# limit#]
         (~query-fn (assoc query-spec# :order order# :offset offset# :limit limit#) condition#)))))
 
-(defn generate-get-by-fn [{:keys [query-fn-meta get-by-fn-meta] :as domain-meta}]
+(defn- generate-get-by-fn [{:keys [query-fn-meta get-by-fn-meta] :as domain-meta}]
   (let [[query-fn-name] query-fn-meta
         [get-by-fn-name get-by-fn-doc-string] get-by-fn-meta
         query-fn (symbol query-fn-name)
@@ -173,7 +173,7 @@
        (first (~query-fn condition#))
        )))
 
-(defn generate-get-fn [{:keys [primary-key get-by-fn-meta get-fn-meta] :as domain-meta}]
+(defn- generate-get-fn [{:keys [primary-key get-by-fn-meta get-fn-meta] :as domain-meta}]
   (when primary-key
     (let [[get-by-fn-name] get-by-fn-meta
           [get-fn-name get-fn-doc-string] get-fn-meta
@@ -197,7 +197,7 @@
         ]
     (apply dc/add! table-name {:fields fields :converters converters} recs)))
 
-(defn generate-add-fn [{:keys [domain-name add-fn-meta] :as domain-meta}]
+(defn- generate-add-fn [{:keys [domain-name add-fn-meta] :as domain-meta}]
   (let [[add-fn-name add-fn-doc-string] add-fn-meta
         add-fn (symbol add-fn-name)
         ]
@@ -213,7 +213,7 @@
       0
       (dc/modify! table-name {:fields fields :converters converters} condition datum))))
 
-(defn generate-update-fn [{:keys [domain-name update-fn-meta] :as domain-meta}]
+(defn- generate-update-fn [{:keys [domain-name update-fn-meta] :as domain-meta}]
   (let [[update-fn-name update-fn-doc-string] update-fn-meta
         update-fn (symbol update-fn-name)
         ]
@@ -229,7 +229,7 @@
            pk-cond
            `(list '~'and ~pk-cond ~@lock-clauses))))
 
-(defn generate-save-fn [{:keys [primary-key save-fn-meta update-fn-meta] :as domain-meta}]
+(defn- generate-save-fn [{:keys [primary-key save-fn-meta update-fn-meta] :as domain-meta}]
   (when primary-key
     (let [[update-fn-name] update-fn-meta
           update-fn (symbol update-fn-name)
@@ -244,7 +244,7 @@
   (when (empty? condition) (throw (IllegalArgumentException. "condition is empty in delete statement")))
   (dc/remove! table-name {:converters converters} condition))
 
-(defn generate-delete-by-fn [{:keys [domain-name delete-by-fn-meta] :as domain-meta}]
+(defn- generate-delete-by-fn [{:keys [domain-name delete-by-fn-meta] :as domain-meta}]
   (let [[delete-by-fn-name delete-by-fn-doc-string] delete-by-fn-meta
         delete-by-fn (symbol delete-by-fn-name)
         ]
@@ -258,7 +258,7 @@
            (if (get-fn pk) 0 1))
          0))
 
-(defn generate-delete-fn [{:keys [primary-key delete-fn-meta delete-by-fn-meta get-fn-meta] :as domain-meta}]
+(defn- generate-delete-fn [{:keys [primary-key delete-fn-meta delete-by-fn-meta get-fn-meta] :as domain-meta}]
   (when primary-key
     (let [[get-fn-name] get-fn-meta
           get-fn (symbol get-fn-name)
@@ -273,11 +273,11 @@
            0
            (#'ladybird.domain.core/delete-fn-impl ~get-fn ~delete-by-fn (~primary-key ~'rec) ~condition))))))
 
-(defn generate-validator [{:keys [domain-name validate-fn-meta] :as domain-meta}]
+(defn- generate-validator [{:keys [domain-name validate-fn-meta] :as domain-meta}]
   (let [[validator-name] validate-fn-meta]
     `(def ~(symbol validator-name) (v/m-validator (:validate ~(symbol domain-name))))))
 
-(defn generate-validate-fn [{:keys [validate-fn-meta] :as domain-meta}]
+(defn- generate-validate-fn [{:keys [validate-fn-meta] :as domain-meta}]
   (let [[validator-name validate-fn-name validate-fn-doc-string] validate-fn-meta]
     `(defn ~(symbol validate-fn-name) ~validate-fn-doc-string [rec#]
        (~(symbol validator-name) rec#))))
@@ -287,24 +287,21 @@
     (when msgs (throw (RuntimeException. (clojure.string/join ", " msgs))))))
 
 ;; TODO: i18n 
-(defn generate-check-fn [{:keys [validate-fn-meta] :as domain-meta}]
+(defn- generate-check-fn [{:keys [validate-fn-meta] :as domain-meta}]
   (let [[_ validate-fn-name _ check-fn-name check-fn-doc-string] validate-fn-meta]
     `(defn ~(symbol check-fn-name) ~check-fn-doc-string [rec#]
        (check-validate-result (~(symbol validate-fn-name) rec#)))))
 
 ;; define domain
-(def default-prepare-fns [create-meta prepare-table-name prepare-crud-fn-names prepare-validate-fn-names])
+(def ^:private prepare-fns [create-meta prepare-table-name prepare-crud-fn-names prepare-validate-fn-names])
 
-(def default-generate-fns [generate-domain generate-query-fn generate-get-by-fn generate-get-fn generate-add-fn generate-update-fn
-                           generate-save-fn generate-delete-by-fn generate-delete-fn generate-query-from-fn generate-validator
-                           generate-validate-fn generate-check-fn])
+(def ^:private generate-fns [generate-domain generate-query-fn generate-get-by-fn generate-get-fn generate-add-fn generate-update-fn
+                             generate-save-fn generate-delete-by-fn generate-delete-fn generate-query-from-fn generate-validator
+                             generate-validate-fn generate-check-fn])
 
-(def ^:dynamic *prepare-fns* default-prepare-fns)
-
-(def ^:dynamic *generate-fns* default-generate-fns)
 
 (defmacro defdomain
-  "Define the data structure of the domain object. You can create your own version of defdomain by bingding *prepare-fns* and *generate-fns*.
+  "Define the data structure of the domain object.
 
    Params:
        domain-name -- the name of the domain, you can refer the data structure by the var named by it after defined the domain 
@@ -336,9 +333,9 @@
   ([domain-name fields-def]
    `(defdomain ~domain-name ~fields-def {}))
   ([domain-name fields-def meta-data]
-   (let [prepare-fn (->> (reverse *prepare-fns*) (apply comp))
+   (let [prepare-fn (->> (reverse prepare-fns) (apply comp))
          domain-meta (prepare-fn domain-name fields-def meta-data)
-         body (map #(% domain-meta) *generate-fns*)
+         body (map #(% domain-meta) generate-fns)
          ]
      `(do
         ~@body))))
