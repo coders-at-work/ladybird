@@ -1,11 +1,33 @@
 (ns ladybird.svc.core
     (:use [ladybird.util.core :only (get-stack-trace-str)])
-    (:require [clojure.tools.logging :as log])
+    (:require [ladybird.data.validate-core :as v]
+              [clojure.tools.logging :as log])
     )
 
 (defn encapsule-body [{:keys [body] :as meta}]
   (let [body-form `(do ~@body)]
     (-> meta (dissoc :body) (assoc :body-form body-form))))
+
+(defn- construct-check-and-bind-body [specs-m body-form]
+       (let [{:keys [validate vars-m] :as m} (reduce (fn [ret [var-sym var-spec]]
+                                                         (-> (update-in ret [:validate] assoc `'~var-sym var-spec)
+                                                             (update-in [:vars-m] assoc `'~var-sym var-sym)
+                                                             )
+                                                         )
+                                                     {} specs-m)
+             ]
+         `(do
+            (-> ((v/m-validator ~validate) ~vars-m) v/check-validate-result)
+            ~body-form)
+         ;m
+         )
+       )
+
+(defn check-and-bind [{:keys [options body-form] :as meta}]
+  (let [{:keys [check-and-bind]} options]
+    (if check-and-bind
+      (assoc meta :body-form (construct-check-and-bind-body check-and-bind body-form))
+      meta)))
 
 (defn catch-forms [meta]
   (let [catch-forms `((catch Exception ~'e (log/error (get-stack-trace-str ~'e)) (ex-info "Oops!" {:ex-type :other-exception})))]
