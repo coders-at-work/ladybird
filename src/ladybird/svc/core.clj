@@ -56,3 +56,11 @@
          ~'meta {:svc '~svc-name :doc-string '~doc-string :prototype '~prototype :options '~options :body '~body}
          ]
      (eval (~'generate-fn ~'meta))))
+
+(defmacro binding-svc
+  "
+  First binding *generate-fns* with binding-val, then call defsvc with args.
+  "
+  [binding-val & args]
+  `(binding [*generate-fns* ~binding-val]
+            (defsvc ~@args)))
