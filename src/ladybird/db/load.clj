@@ -4,21 +4,17 @@
      ))
 
 ;; load db
-(defn jndi [db-def]
-  (kdb/create-db db-def))
-
 (def db-helpers {:mssql kdb/mssql
                  :oracle kdb/oracle
                  :mysql kdb/mysql
                  :msaccess kdb/msaccess
-                 :jndi jndi
                  })
 
 (defn parse-db-def [{:keys [dbms-type password decrypter] :as db-def}]
   (let [db-helper (db-helpers dbms-type)]
     (cond
-      (nil? db-helper) (throw (RuntimeException. "Unknown dbms type."))
       (= :jndi dbms-type) (dissoc db-def :dbms-type)
+      (nil? db-helper) (throw (RuntimeException. "Unknown dbms type."))
       :others (let [passowrd (if decrypter (decrypter password) password)]
                 (-> (dissoc db-def :dbms-type :decrypter) (assoc :password password) db-helper)))))
 
