@@ -45,6 +45,16 @@
       (assoc meta :body-form (construct-check-and-bind-body check-and-bind body-form))
       meta)))
 
+(defn transform [{:keys [options body-form] :as meta}]
+  (let [{:keys [to to-list-all to-vector-all]} options
+        body-form (cond
+                    to `(~to ~body-form)
+                    to-list-all `(map ~to-list-all ~body-form)
+                    to-vector-all `(mapv ~to-vector-all ~body-form)
+                    :default body-form)
+        ]
+    (assoc meta :body-form body-form)))
+
 (defn catch-forms [meta]
   (let [catch-forms `((catch Exception ~'e
                              (log/error (clojure.string/join "\n" [(type ~'e) (get-stack-trace-str ~'e)]))
