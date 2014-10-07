@@ -22,7 +22,30 @@
       :others (let [passowrd (if decrypter (decrypter password) password)]
                 (-> (dissoc db-def :dbms-type :decrypter) (assoc :password password) db-helper)))))
 
-(defn load-db-file [fpath]
+(defn load-db-file
+  "
+  Ex.
+      =========== file default-main-db.def ===========  
+      {:dbms-type :mysql
+       :host \"localhost\"
+       :port 3306
+       :db \"cookbook\"
+       :user \"xzj\"
+       :password \"xzjamjzx\"
+      }
+
+      =========== file named-db.def =============
+      {:qq {:dbms-type :mysql
+            :host \"localhost\"
+            :port 3306
+            :db \"cookbook\"
+            :user \"xzj\"
+            :password \"xzjamjzx\"
+           }
+       :main {.......}
+      }
+  "
+  [fpath]
   (let [db-defs-m (load-file fpath)
         db-defs-m (if (:dbms-type db-defs-m) {:main db-defs-m} db-defs-m)
         ]
