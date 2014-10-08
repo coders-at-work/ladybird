@@ -67,7 +67,7 @@
     `(defn ~svc ~doc-string ~args
        (try ~body-form ~@catch-forms))))
 
-(def ^:dynamic *generate-fns* [encapsule-body catch-forms gen-defn-with-catch-point] )
+(def ^:dynamic *generate-fns* [encapsule-body transform check-and-bind catch-forms gen-defn-with-catch-point] )
 
 #_(defmacro defsvc
   ""
