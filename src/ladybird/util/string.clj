@@ -3,6 +3,7 @@
     (:import [java.util Date]
              [java.text SimpleDateFormat]))
 
+;; case related
 (defn hyphen-to-underscore [s]
   (string/replace s "-" "_"))
 
@@ -15,12 +16,19 @@
     (string/replace #"^([^a-zA-Z]*)-([a-z])" #(str (second %) (last %)))
     underscore-to-hyphen))
 
+(defn camel-case [x & {:keys [capitalize] :or {capitalize false}}]
+  (let [f (if capitalize string/upper-case string/lower-case)]
+    (-> (name x)
+      (string/replace #"-+[a-z]" (comp string/upper-case last))
+      (string/replace #"^." f))))
+
 (defn clj-case-to-db-case [s]
   (-> s string/lower-case hyphen-to-underscore))
 
 (defn db-case-to-clj-case [s]
   (-> s string/lower-case underscore-to-hyphen))
 
+;; transform
 (defn qualify-name
   "
    Qualify (name x) by the name of *ns*
