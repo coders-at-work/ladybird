@@ -7,4 +7,6 @@
                  [org.clojure/tools.logging "0.3.1"]
                  [korma "0.3.2"]
                  [mysql/mysql-connector-java "5.1.25"]
-                 ])
+                 ]
+  :source-paths ["src/clj"]
+  )
