@@ -13,7 +13,7 @@
 (defn parse-db-def [{:keys [dbms-type password decrypter] :as db-def}]
   (let [db-helper (db-helpers dbms-type)]
     (cond
-      (= :jndi dbms-type) (dissoc db-def :dbms-type)
+      (= :jndi-mysql dbms-type) (-> (dissoc db-def :dbms-type) (assoc :delimiters "`"))
       (nil? db-helper) (throw (RuntimeException. "Unknown dbms type."))
       :others (let [passowrd (if decrypter (decrypter password) password)]
                 (-> (dissoc db-def :dbms-type :decrypter) (assoc :password password) db-helper)))))
