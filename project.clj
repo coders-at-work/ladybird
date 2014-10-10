@@ -9,4 +9,5 @@
                  [mysql/mysql-connector-java "5.1.25"]
                  ]
   :source-paths ["src/clj"]
+  :java-source-paths ["src/java"]
   )
