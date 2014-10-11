@@ -14,3 +14,10 @@
   "
   [& args]
   (vec (apply concat args)))
+
+(defn mapcatv
+  "
+  Like mapcat, but return a vector instead.
+  "
+  [& args]
+  (vec (apply mapcat args)))
