@@ -77,13 +77,13 @@
   You can create your own version of defsvc by bingding *generate-fns*. See dinding-svc.
 
   Examples:
-  (SVC a \"a\" [a b c d] {:check-and-bind [a [not-nil is-boolean]
-                                           b not-nil
-                                           c [:to inc]
-                                           d [not-nil :to dec]]
-                          :to str}
-    [a b c d])
-  (a false 2 3 4) -> \"[false 2 4 3]\"
+      (SVC a \"a\" [a b c d] {:check-and-bind [a [not-nil is-boolean]
+                                               b not-nil
+                                               c [:to inc]
+                                               d [not-nil :to dec]]
+                              :to str}
+        [a b c d])
+      (a false 2 3 4) -> \"[false 2 4 3]\"
   "
   [svc-name doc-string prototype options & body]
   `(let [~'generate-fn (->> (reverse *generate-fns*) (apply comp))
@@ -94,6 +94,9 @@
 (defmacro defsvc
   "
   Defines a service. It is like SVC, but you can ignore the options if there is no content in it.
+
+  Examples:
+      (defsvc a \"a\" [a b c d] (str [a b c d]))
   "
   [svc-name doc-string prototype & body]
   (let [[form] body
