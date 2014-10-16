@@ -55,20 +55,21 @@
         ]
     (assoc meta :body-form body-form)))
 
-(defn catch-forms [meta]
+(defn catch-forms [{:keys [body-form] :as meta}]
   (let [catch-forms `((catch Exception ~'e
                              (log/error (clojure.string/join "\n" [(type ~'e) (get-stack-trace-str ~'e)]))
-                             (ex-info "Oops!" {:ex-type :other-exception})))]
-    (assoc meta :catch-forms catch-forms)))
+                             (ex-info "Oops!" {:ex-type :other-exception})))
+        body-form `(try ~body-form ~@catch-forms)
+        ]
+    (assoc meta :body-form body-form)))
 
-(defn gen-defn-with-catch-point [{:keys [svc doc-string prototype body-form catch-forms] :as meta}]
+(defn gen-defn [{:keys [svc doc-string prototype body-form] :as meta}]
   (let [args prototype
         ]
-    `(defn ~svc ~doc-string ~args
-       (try ~body-form ~@catch-forms))))
+    `(defn ~svc ~doc-string ~args ~body-form)))
 
 ;; service generation functions
-(def ^:dynamic *generate-fns* [encapsule-body transform check-and-bind catch-forms gen-defn-with-catch-point] )
+(def ^:dynamic *generate-fns* [encapsule-body transform check-and-bind catch-forms gen-defn] )
 
 ;; service macro
 (defmacro SVC
