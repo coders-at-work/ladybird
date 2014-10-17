@@ -18,7 +18,7 @@
        (def ~var-sym ~init-form)
        (defn ~name [] ~var-name)
        (defmacro ~(sym/str-symbol "with-" name) [~'name & ~'body]
-         `(binding [~(sym/str-symbol '~(str *ns*) "/" '~var-name) ~~'name]
+         `(binding [~(symbol (str/qualify-name '~var-name)) ~~'name]
             ~@~'body)))))
 
 (defn get-stack-trace-str [e]
