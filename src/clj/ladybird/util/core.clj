@@ -13,13 +13,15 @@
       (with-aa 4 (inc (aa)))    ;;=> 5"
   [name init-form]
   (let [var-name (sym/str-symbol "*" name "*")
-        var-sym (with-meta var-name {:dynamic true :private true})]
+        var-sym (with-meta var-name {:dynamic true :private true})
+        qualified-var-sym (symbol (str/qualify-name var-name))
+        ]
     `(do
        (def ~var-sym ~init-form)
        (defn ~name [] ~var-name)
        (defmacro ~(sym/str-symbol "with-" name) [~'name & ~'body]
-         `(binding [~(symbol (str/qualify-name '~var-name)) ~~'name]
-            ~@~'body)))))
+         `(binding [~'~qualified-var-sym ~~'name]
+                   ~@~'body)))))
 
 (defn get-stack-trace-str [e]
   (apply str (.getMessage e) "\n" (map #(str % "\n") (.getStackTrace e))))
