@@ -17,6 +17,7 @@
 
 (defn catch-stack [{:keys [body-form] :as meta}]
   (let [catch-forms `((catch Exception e#
+                             (mon/set-error-occured!)
                              (log/error (stack-error-str e#))
                              (ex-info "Oops!" {:ex-type :other-exception})))
         body-form `(try ~body-form ~@catch-forms)
