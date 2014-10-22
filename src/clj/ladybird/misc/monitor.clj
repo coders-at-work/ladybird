@@ -39,7 +39,7 @@
        (get-monitor-cfg ns-sym))))
 
 
-;; monitor functionality
+;; monitor infrastructure
 (def-bindable mon-info nil)
 
 (defn call-stack-info []
@@ -58,12 +58,22 @@
 (defn top-time-monitor-existed? []
   (:top-time-monitor-existed? @(mon-info)))
 
+(defn- assoc-mon-info! [k v]
+       (swap! (mon-info) assoc k v))
+
 (defn set-top-time-monitor! []
-  (swap! (mon-info) assoc :top-time-monitor-existed? true))
+  (assoc-mon-info! :top-time-monitor-existed? true))
+
+(defn set-error-occured! []
+  (assoc-mon-info! :error-occured? true))
+
+(defn error-occured? []
+  (:error-occured? @(mon-info)))
 
 (defn initial-mon-info [stack-info]
   (atom {:call-stack-info [stack-info]}))
 
+;; monitor functionality 
 (defmacro begin-stack [stack-info & body]
   `(with-mon-info (initial-mon-info ~stack-info) ~@body)
   )
@@ -90,7 +100,7 @@
              (do
                (set-top-time-monitor!)
                (let [r# ~body]
-                 (log/info (call-stack-str))
+                 (when-not (error-occured?) (log/info (call-stack-str)))
                  r#)))))
 
 (defmacro begin-mon-time [stack-info & body]
