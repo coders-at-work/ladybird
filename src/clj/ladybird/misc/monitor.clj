@@ -28,14 +28,14 @@
    (swap! monitor-cfg assoc ns-sym val))
   ;; TODO: change key from vector to qualified symbol
   ([ns-sym var-sym val] {:pre [(contains? #{:time :exec-path false} val)]} 
-   (swap! monitor-cfg assoc [ns-sym var-sym] val)))
+   (swap! monitor-cfg assoc (sym/str-symbol ns-sym "/" var-sym) val)))
 
 (defn get-monitor-cfg
   ([ns-sym]
    (or (get-in @monitor-cfg [ns-sym])
        @root-monitor-cfg))
   ([ns-sym var-sym]
-   (or (get-in @monitor-cfg [[ns-sym var-sym]])
+   (or (get-in @monitor-cfg [(sym/str-symbol ns-sym "/" var-sym)])
        (get-monitor-cfg ns-sym))))
 
 
@@ -54,6 +54,13 @@
 
 (defn reset-call-stack! [st]
   (swap! (mon-info) assoc-in [:call-stack-info] st))
+
+(defn replace-a-stack! [i st]
+  (let [st-info (call-stack-info)
+        [first-half second-half] (split-at i st-info)
+        st-info (coll/concatv first-half [st] (rest second-half))
+        ] 
+    (reset-call-stack! st-info)))
 
 (defn top-time-monitor-existed? []
   (:top-time-monitor-existed? @(mon-info)))
@@ -78,21 +85,24 @@
   `(with-mon-info (initial-mon-info ~stack-info) ~@body)
   )
 
-(defmacro enter-stack [stack-info & body]
-  `(do (append-call-stack! ~stack-info) ~@body))
+(defmacro enter-stack [tag-completed? stack-info & body]
+  (let [body `(do (append-call-stack! ~stack-info) ~@body)]
+    (if tag-completed?
+      `(let [i# (count (call-stack-info))
+             r# ~body]
+         (replace-a-stack! i# {~stack-info :completed})
+         r#)
+      body)))
 
 (defmacro enter-mon-time [stack-info & body]
   (let [body `(let [start# (System/nanoTime)
                     i# (count (call-stack-info))
-                    ret# (enter-stack ~stack-info ~@body) 
+                    ret# (enter-stack false ~stack-info ~@body) 
                     ]
                 (let [end# (System/nanoTime)
                       elapsed# (-> (/ (double (- end# start#)) 1000000.0) (str " ms"))
-                      st-info# (call-stack-info)
-                      [first-half# second-half#] (split-at i# st-info#)
-                      st-info# (coll/concatv first-half# [{~stack-info elapsed#}] (rest second-half#))
                       ]
-                  (reset-call-stack! st-info#)
+                  (replace-a-stack! i# {~stack-info elapsed#})
                   ret#))
         ]
     `(if-let [top-time-monitor-existed?# (top-time-monitor-existed?)]
@@ -115,7 +125,7 @@
 (defmacro join-monitor [mon-type stack-info & body]
   (if (= mon-type :time)
     `(enter-mon-time ~stack-info ~@body)
-    `(enter-stack ~stack-info ~@body)))
+    `(enter-stack true ~stack-info ~@body)))
 
 (defmacro monitor [mon-type stack-info & body]
   `(if (mon-info)
