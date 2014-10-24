@@ -1,7 +1,6 @@
 (ns ladybird.svc.core
-    (:use [ladybird.util.core :only (get-stack-trace-str)])
     (:require [ladybird.data.validate-core :as v]
-              [clojure.tools.logging :as log])
+              [ladybird.misc.exception :as ex])
     )
 
 (defn encapsule-body [{:keys [body] :as meta}]
@@ -56,9 +55,7 @@
     (assoc meta :body-form body-form)))
 
 (defn catch-forms [{:keys [body-form] :as meta}]
-  (let [catch-forms `((catch Exception ~'e
-                             (log/error (clojure.string/join "\n" [(type ~'e) (get-stack-trace-str ~'e)]))
-                             (ex-info "Oops!" {:ex-type :other-exception})))
+  (let [catch-forms `((catch Exception ~'e ((ex/unified-ex-handler) ~'e)))
         body-form `(try ~body-form ~@catch-forms)
         ]
     (assoc meta :body-form body-form)))
