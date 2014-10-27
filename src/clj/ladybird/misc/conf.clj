@@ -1,5 +1,6 @@
 (ns ladybird.misc.conf
-    (:require [ladybird.util.symbol :as sym])
+    (:require [ladybird.util.symbol :as sym]
+              [ladybird.misc.exception :as e])
     )
 
 ;; config
@@ -32,7 +33,7 @@
      `(defn ~name 
         ([]
          (let [v# (get-config-value ~k)]
-           (when (~null?-fn v#) (throw (RuntimeException. (format "configuration of %s incorrect" ~k))))
+           (when (~null?-fn v#) (throw (e/sys-error :invalid-config-value (format "configuration of %s is incorrect" ~k) (format "the invalid value is %s" v#))))
            (~convert-fn v#)))
         ([~'default-value]
          (let [v# (get-config-value ~k)]

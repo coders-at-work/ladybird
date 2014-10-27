@@ -3,6 +3,7 @@
               [ladybird.data.core :as dc]
               [ladybird.data.cond :as c]
               [ladybird.data.validate-core :as v]
+              [ladybird.misc.exception :as e]
               ))
 
 ;; domain meta preparing functions
@@ -241,7 +242,7 @@
           (~update-fn ~condition ~'rec)))))
 
 (defn delete-record! [{:keys [table-name converters] :as spec} condition]
-  (when (empty? condition) (throw (IllegalArgumentException. "condition is empty in delete statement")))
+  (when (empty? condition) (throw (e/sys-error :delete-domain-record-failed "condition is empty in delete statement")))
   (dc/remove! table-name {:converters converters} condition))
 
 (defn- generate-delete-by-fn [{:keys [domain-name delete-by-fn-meta] :as domain-meta}]

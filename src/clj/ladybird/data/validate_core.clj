@@ -1,6 +1,7 @@
 (ns ladybird.data.validate-core
     (:require [ladybird.misc.i18n :as i]
-              [ladybird.util.string :as str])
+              [ladybird.util.string :as str]
+              [ladybird.misc.exception :as e])
     )
 
 (defn validator
@@ -80,4 +81,4 @@
    (check-validate-result (i/locale) kmap validate-result))
   ([locale kmap validate-result]
    (let [msgs (err-msgs locale kmap validate-result)]
-     (when msgs (throw (RuntimeException. (clojure.string/join ", " msgs)))))))
+     (when msgs (throw (apply e/sys-error :validate-failed msgs))))))

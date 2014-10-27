@@ -1,6 +1,7 @@
 (ns ladybird.db.load
     (:require [korma.db :as kdb]
               [ladybird.db.core :as c]
+              [ladybird.misc.exception :as e]
      ))
 
 ;; load db
@@ -14,7 +15,7 @@
   (let [db-helper (db-helpers dbms-type)]
     (cond
       (= :jndi-mysql dbms-type) (-> (dissoc db-def :dbms-type) (assoc :delimiters "`"))
-      (nil? db-helper) (throw (RuntimeException. "Unknown dbms type."))
+      (nil? db-helper) (throw (e/sys-error :load-db-def-failed "Unknown dbms type" dbms-type))
       :others (let [passowrd (if decrypter (decrypter password) password)]
                 (-> (dissoc db-def :dbms-type :decrypter) (assoc :password password) db-helper)))))
 
