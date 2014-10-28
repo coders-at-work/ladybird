@@ -29,6 +29,9 @@
 (defn validate-m
   "
    Validate a data map according to a validator map.
+   Examples:
+       (validate-m {:a not-nil} {})
+       (validate-m {:a [not-nil]} {})
   "
   [vmap m]
   (->> (map (fn [[n v]] (->> v list flatten
