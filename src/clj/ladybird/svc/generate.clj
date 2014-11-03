@@ -5,8 +5,7 @@
     )
 
 (defn with-stack [{:keys [svc prototype body-form] :as meta}]
-  (let [svc-info `(apply list '~svc ~prototype)
-        body-form `(mon/monitor-exec-state ~(ns-name *ns*) ~svc ~prototype ~body-form)
+  (let [body-form `(mon/monitor-exec-state ~(ns-name *ns*) ~svc ~prototype ~body-form)
         ]
     (assoc meta :body-form body-form)))
 
