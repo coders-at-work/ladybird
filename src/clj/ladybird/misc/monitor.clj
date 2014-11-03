@@ -20,22 +20,37 @@
 
 (def ^:private monitor-cfg (atom nil))
 
+(defn- make-key [ns-sym var-sym]
+       (sym/str-symbol ns-sym "/" var-sym))
+
+(defn- valid-cfg-key? [k]
+       (contains? #{:time :exec-path false nil} k))
+
 (defn set-monitor-cfg!
   "
-  Notes: Setting a value of a key to false doesn't mean to disable monitoring on that level, just means falling through to its' parent level, up to root.
+  Params:
+      val -- the config value, it can be one of the following value:
+               false -- means to disable monitoring on that level
+               nil -- means falling through to its' parent level to get the config value, up to root
+               :exec-path -- means to monitor the call path
+               :time -- means to monitor the elapsed time
   "
-  ([ns-sym val] {:pre [(contains? #{:time :exec-path false} val)]} 
+  ([ns-sym val] {:pre [(valid-cfg-key? val)]} 
    (swap! monitor-cfg assoc ns-sym val))
-  ([ns-sym var-sym val] {:pre [(contains? #{:time :exec-path false} val)]} 
-   (swap! monitor-cfg assoc (sym/str-symbol ns-sym "/" var-sym) val)))
+  ([ns-sym var-sym val] {:pre [(valid-cfg-key? val)]} 
+   (swap! monitor-cfg assoc (make-key ns-sym var-sym) val)))
 
 (defn get-monitor-cfg
   ([ns-sym]
-   (or (get-in @monitor-cfg [ns-sym])
-       @root-monitor-cfg))
+   (let [v (get-in @monitor-cfg [ns-sym])]
+     (if (false? v)
+       v
+       (or v @root-monitor-cfg))))
   ([ns-sym var-sym]
-   (or (get-in @monitor-cfg [(sym/str-symbol ns-sym "/" var-sym)])
-       (get-monitor-cfg ns-sym))))
+   (let [v (get-in @monitor-cfg [(make-key ns-sym var-sym)])]
+     (if (false? v)
+       v
+       (or v (get-monitor-cfg ns-sym))))))
 
 
 ;; monitor infrastructure
