@@ -188,14 +188,11 @@
 (defmacro begin-stack [stack-info & body]
   `(with-mon-info (initial-mon-info ~stack-info) ~@body))
 
-(defmacro enter-stack [tag-completed? stack-info & body]
-  (let [complete-body (when tag-completed?
-                        `(assoc-in-stack! (parent-stack-indices) {~stack-info :completed})
-                        )
-        body `(let [parent-indices# (append-stack! ~stack-info)
+(defmacro enter-stack [stack-info & body]
+  (let [body `(let [parent-indices# (append-stack! ~stack-info)
                     r# (do ~@body)
                     ]
-                ~complete-body
+                (assoc-in-stack! (parent-stack-indices) {~stack-info :completed})
                 (set-parent-stack-indices! parent-indices#)
                 r#
                 )]
@@ -235,7 +232,7 @@
 (defmacro join-monitor [mon-type stack-info & body]
   (if (= mon-type :time)
     `(enter-mon-time ~stack-info ~@body)
-    `(enter-stack true ~stack-info ~@body)))
+    `(enter-stack ~stack-info ~@body)))
 
 (defmacro monitor [mon-type stack-info & body]
   `(if (mon-info)
