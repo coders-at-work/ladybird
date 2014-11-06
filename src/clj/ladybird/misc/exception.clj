@@ -1,11 +1,9 @@
 (ns ladybird.misc.exception
-    (:use [ladybird.util.core :only (get-stack-trace-str)])
     (:require [ladybird.misc.i18n :as i18n]
-              [clojure.tools.logging :as log]
               [clojure.string :as str])
     )
 
-;; exception
+;; build in exceptions
 (defn ex-msg [ex]
   (let [{:keys [ex-type ex-key msg-args]} (ex-data ex) 
         msg (.getMessage ex)]
@@ -63,25 +61,3 @@
 
 (defn unauthorized? [ex]
   (is-ex-type? ex :unauthorized))
-
-
-;; exception handler
-(defn default-ex-handler [ex]
-  (letfn [(thr [] (throw (RuntimeException. (ex-msg ex) ex)))]
-         (cond
-           (no-data? ex) (thr)
-           (or (no-priv? ex)
-               (unauthorized? ex)) (do (log/warn (ex-msg ex))
-                                       (thr))
-           (sys-error? ex) (do (log/error (ex-msg ex))
-                               (thr))
-           :others (do (log/error (str/join "\n" [(type ex) (get-stack-trace-str ex)]))
-                       (throw ex)))))
-
-(def ^:private ex-handler-container (atom default-ex-handler))
-
-(defn unified-ex-handler []
-  @ex-handler-container)
-
-(defn set-unified-ex-handler! [f]
-  (reset! ex-handler-container f))
