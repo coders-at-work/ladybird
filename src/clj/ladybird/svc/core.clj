@@ -1,6 +1,6 @@
 (ns ladybird.svc.core
     (:require [ladybird.data.validate-core :as v]
-              [ladybird.misc.exception :as ex])
+              [ladybird.misc.exception-handler :as exh])
     )
 
 (defn encapsule-body [{:keys [body] :as meta}]
@@ -55,7 +55,7 @@
     (assoc meta :body-form body-form)))
 
 (defn catch-forms [{:keys [body-form] :as meta}]
-  (let [catch-forms `((catch Exception ~'e ((ex/unified-ex-handler) ~'e)))
+  (let [catch-forms `((catch Exception ~'e ((exh/unified-ex-handler) ~'e)))
         body-form `(try ~body-form ~@catch-forms)
         ]
     (assoc meta :body-form body-form)))
@@ -72,7 +72,7 @@
 (defmacro SVC
   "
   Creates a service. The default implementation will generate a function with prototype and body, and catching and logging all exceptions thrown by body as error. And you can specify local validation and conversion, returned value convertion in options.
-  You can create your own version of defsvc by bingding *generate-fns*. See dinding-svc.
+  You can create your own version of defsvc by bingding *generate-fns*. See binding-svc.
 
   Examples:
       (SVC a \"a\" [a b c d] {:check-and-bind [a [not-nil is-boolean]
@@ -91,7 +91,7 @@
 
 (defmacro defsvc
   "
-  Defines a service. It is like SVC, but you can ignore the options if there is no content in it.
+  Defines a service. It is the same as SVC, except that you can ignore the options if there is no content in it.
 
   Examples:
       (defsvc a \"a\" [a b c d] (str [a b c d]))

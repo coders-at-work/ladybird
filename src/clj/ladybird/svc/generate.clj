@@ -1,6 +1,6 @@
 (ns ladybird.svc.generate
-    (:use [ladybird.util.core :only (get-stack-trace-str)])
     (:require [ladybird.misc.monitor :as mon]
+              [ladybird.misc.exception-handler :as exh]
               [clojure.tools.logging :as log])
     )
 
@@ -9,16 +9,8 @@
         ]
     (assoc meta :body-form body-form)))
 
-(defn stack-error-str [e]
-  (clojure.string/join "\n" [(type e)
-                             (mon/call-stack-str)
-                             (get-stack-trace-str e)]))
-
 (defn catch-stack [{:keys [body-form] :as meta}]
-  (let [catch-forms `((catch Exception e#
-                             (mon/set-error-occured!)
-                             (log/error (stack-error-str e#))
-                             (ex-info "Oops!" {:ex-type :other-exception})))
+  (let [catch-forms `((catch Exception e# (exh/default-mon-ex-handler e#)))
         body-form `(try ~body-form ~@catch-forms)
         ]
     (assoc meta :body-form body-form)))
