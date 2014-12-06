@@ -63,3 +63,13 @@
 (defn raw? [x]
   (and (list? x)
        (= RAW (first x))))
+
+(defn and-cond [clause1 & clauses]
+  (let [conds (filter (complement nil?) (cons clause1 clauses))]
+    (if-not (empty? conds)
+      (apply list 'and conds))))
+
+(defn or-cond [clause1 & clauses]
+  (let [conds (filter (complement nil?) (cons clause1 clauses))]
+    (if-not (empty? conds)
+      (apply list 'or conds))))
