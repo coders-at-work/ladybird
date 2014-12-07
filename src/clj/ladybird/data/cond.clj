@@ -4,9 +4,9 @@
 (defn- convert-op-value[op value]
        (condp = op
          '<> ['!= value]
-         'contain ['like (str "%" value "%")]
-         'start-with ['like (str value "%")]
-         'end-with ['like (str "%" value)]
+         'contain ['like `(str "%" ~value "%")]
+         'start-with ['like `(str ~value "%")]
+         'end-with ['like `(str "%" ~value)]
          'is-null ['nil?]
          [op value]))
 
