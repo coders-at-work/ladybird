@@ -22,17 +22,7 @@
   (adaptive-ex-handler ex
                        #(do
                           (log/error (str/join "\n" [(type %) (get-stack-trace-str %)]))
-                          (throw %)))
-  #_(letfn [(thr [] (throw (RuntimeException. (ex-msg ex) ex)))]
-         (cond
-           (no-data? ex) (thr)
-           (or (no-priv? ex)
-               (unauthorized? ex)) (do (log/warn (ex-msg ex))
-                                       (thr))
-           (sys-error? ex) (do (log/error (ex-msg ex))
-                               (thr))
-           :others (do (log/error (str/join "\n" [(type ex) (get-stack-trace-str ex)]))
-                       (throw ex)))))
+                          (throw %))))
 
 (defn mon-stack-error-str [e]
   (str/join "\n" [(type e)
