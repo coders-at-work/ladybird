@@ -8,7 +8,7 @@
 
 ;; exception handler
 (defn adaptive-ex-handler [ex others-fn]
-  (letfn [(thr [] (throw (RuntimeException. (ex-msg ex) ex)))]
+  (letfn [(thr [] (throw ex))]
          (cond
            (no-data? ex) (thr)
            (or (no-priv? ex)
