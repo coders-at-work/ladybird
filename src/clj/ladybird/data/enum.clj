@@ -13,6 +13,7 @@
         ]
     `(do
        (def ~name (value-converter ~kvs))
+       (def ~(str-symbol name "-vals") (->> ~kvs reverse (take-nth 2) vec))
        (def ~validator (b/enum-of ~name ~i18n-msg-key)))))
 
 (defmacro defenum [name k1 v1 & kvs]
