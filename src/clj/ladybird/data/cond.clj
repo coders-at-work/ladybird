@@ -3,7 +3,8 @@
 
 (defn- convert-op-value[op value]
        (condp = op
-         '<> ['!= value]
+         '!= ['not= value]
+         '<> ['not= value]
          'contain ['like `(str "%" ~value "%")]
          'start-with ['like `(str ~value "%")]
          'end-with ['like `(str "%" ~value)]
@@ -64,12 +65,13 @@
   (and (list? x)
        (= RAW (first x))))
 
+(defn- comp-cond [op clause1 & clauses]
+       (let [conds (filter seq (cons clause1 clauses))]
+         (when (seq conds)
+           (apply list op conds))))
+
 (defn and-cond [clause1 & clauses]
-  (let [conds (filter (complement nil?) (cons clause1 clauses))]
-    (if-not (empty? conds)
-      (apply list 'and conds))))
+  (apply comp-cond 'and clause1 clauses))
 
 (defn or-cond [clause1 & clauses]
-  (let [conds (filter (complement nil?) (cons clause1 clauses))]
-    (if-not (empty? conds)
-      (apply list 'or conds))))
+  (apply comp-cond 'or clause1 clauses))
