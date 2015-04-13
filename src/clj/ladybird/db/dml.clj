@@ -20,8 +20,8 @@
                    :fields -- a vector of field specs specifying which fields will be selected from the table. A field spec can be:
                                 field  -- field name, must be a keyword
                                 [field field-alias] -- field name and its' alias, both must be keywords
-                   :aggregate -- spec of aggregation, should be of form as: [[function-name field] alias]. function-name can be a string, a keyword or a symbol. field and alias should be a keyword.
-                                 Ex. [[:count :id] :cnt], [[\"max\" :price] :most_expensive]
+                   :aggregate -- spec of aggregation, should be of form as: [[function-name field] alias] or [[function-name field] alias group-by]. function-name can be a string, a keyword or a symbol. field, alias and group-by should be a keyword.
+                                 Ex. [[:count :id] :cnt], [[\"max\" :price] :most_expensive :category_id]
                    :joins -- a map of join specs, each key will be used as the alias of the joined table, and will be used in :join-with.
                              Each value has the following forms:
                                  [join-type table fields on-clause]
@@ -44,11 +44,14 @@
                                       :order [:age [:start-time :desc :end-time :asc] :create-time]
                    :offset -- a number means from which position the selecting results begin to return
                    :limit -- a number means the maximum rows will be returned
+                   :group-by -- a collection of group-by fields
+                                Example:
+                                :group-by [:gender :age]
    Return:
        database records"
   ([table where]
     (select table where {}))
-  ([table where {:keys [fields join-with joins aggregate modifier order offset limit] :as spec}]
+  ([table where {:keys [fields join-with joins aggregate group-by modifier order offset limit] :as spec}]
     (dbk/select table where (assoc-spec-with-db spec))))
 
 (defn insert!

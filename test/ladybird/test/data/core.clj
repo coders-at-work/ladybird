@@ -29,7 +29,7 @@
 (add-p! {:name "abc" :age 12 :first-name "a" :last-name "c"})
 ; 91
 
-(update-p! (make (= :id 91) {:last-name "d"}))
+(update-p! (make (= :id 91)) {:last-name "d"})
 ; 1
 
 (save-p! {:id 91 :last-name "e"})

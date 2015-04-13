@@ -46,10 +46,10 @@
        fields))
 
 ;; meta data
-(defn prepare-select-spec [table {:keys [fields aggregate modifier join-with joins order offset limit] :as query-spec}]
-  (let [ret {:aggregate aggregate :modifier modifier :order order :offset offset :limit limit}
+(defn prepare-select-spec [table {:keys [fields aggregate group-by modifier join-with joins order offset limit] :as query-spec}]
+  (let [ret {:aggregate aggregate :group-by group-by :modifier modifier :order order :offset offset :limit limit}
         fields (apply make-select-fields table fields)
-        ret (if-not (empty? fields) (assoc ret :fields fields) ret)
+        ret (if (seq fields) (assoc ret :fields fields) ret)
         ]
     ret))
 
@@ -238,7 +238,7 @@
    (query table {} condition))
   ;; TODO support aggregate
   ;; TODO: check allowed fields in condition
-  ([table {:keys [fields converters aggregate join-with joins modifier order offset limit] :as spec} condition]
+  ([table {:keys [fields converters aggregate group-by join-with joins modifier order offset limit] :as spec} condition]
          (let [cond-convert-spec {:table table :table-fields fields :joins joins :converters converters}
                {:keys [fields order] :as spec} (prepare-select-spec table spec)
                fields (to-raw-result fields)
