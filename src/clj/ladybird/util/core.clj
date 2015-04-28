@@ -25,3 +25,10 @@
 
 (defn get-stack-trace-str [e]
   (apply str (.getMessage e) "\n" (map #(str % "\n") (.getStackTrace e))))
+
+(defn get-system-property 
+  "Get a system property."
+  ([s]
+   (System/getProperty s))
+  ([s default]
+   (System/getProperty s default)))

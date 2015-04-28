@@ -7,22 +7,19 @@
     )
 
 ;; exception handler
-(defn adaptive-ex-handler [ex others-fn]
-  (letfn [(thr [] (throw ex))]
-         (cond
-           (no-data? ex) (thr)
-           (or (no-priv? ex)
-               (unauthorized? ex)) (do (log/warn (ex-msg ex))
-                                       (thr))
-           (sys-error? ex) (do (log/error (ex-msg ex))
-                               (thr))
-           :others (others-fn ex))))
+(defn adaptive-ex-handler
+  ([ex]
+   (adaptive-ex-handler ex #(log/error (str/join "\n" [(type %) (get-stack-trace-str %)]))))
+  ([ex others-fn]
+   (cond
+     (no-data? ex) nil 
+     (or (no-priv? ex)
+         (unauthorized? ex)) (log/warn (ex-msg ex))
+     (sys-error? ex) (log/error (ex-msg ex))
+     :others (others-fn ex))))
 
 (defn default-ex-handler [ex]
-  (adaptive-ex-handler ex
-                       #(do
-                          (log/error (str/join "\n" [(type %) (get-stack-trace-str %)]))
-                          (throw %))))
+  (adaptive-ex-handler ex))
 
 (defn mon-stack-error-str [e]
   (str/join "\n" [(type e)
