@@ -21,13 +21,14 @@
   `(list '~op ~@args))
 
 (defn- pred? [x]
-  (and (seq? x) (#{'= '!= '< '> '<= '>= 'like 'nil? 'in '<> 'contain 'start-with 'end-with 'is-null} (first x))))
+  (and (seq? x) (#{'= 'not= '!= '< '> '<= '>= 'like 'nil? 'in '<> 'contain 'start-with 'end-with 'is-null} (first x))))
 
 (defn- logical? [x]
   (and (seq? x) (#{'and 'or 'not} (first x))))
 
 ;; build-in operators used by condition
 ;;  =    
+;;  not=
 ;;  !=   
 ;;  <    
 ;;  >    
