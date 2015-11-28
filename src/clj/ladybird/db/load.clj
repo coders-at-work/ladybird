@@ -27,8 +27,8 @@
        :host \"localhost\"
        :port 3306
        :db \"cookbook\"
-       :user \"xzj\"
-       :password \"xzjamjzx\"
+       :user \"username\"
+       :password \"password\"
       }
 
       =========== file named-db.def =============
