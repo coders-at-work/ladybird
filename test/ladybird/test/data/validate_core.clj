@@ -1,5 +1,7 @@
 (ns ladybird.test.data.validate-core)
 
+;; TODO: rewrite this test
+(comment 
 
 (use 'ladybird.misc.i18n :reload)
 (use 'ladybird.data.validate-core :reload)
@@ -41,3 +43,5 @@
 (def-validator not-nil2 #(not (nil? %)) "%s must not null")
 (not-nil2 2)
 (not-nil2 nil)
+
+)

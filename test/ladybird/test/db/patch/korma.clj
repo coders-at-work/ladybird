@@ -1,5 +1,10 @@
 (ns ladybird.test.db.patch.korma)
 
+
+;; TODO: rewrite this test
+(comment
+
+  
 (use 'ladybird.db.load :reload)
 (load-db-file "resources/db.def")
 (require '[ladybird.db.core :as dc])
@@ -54,3 +59,5 @@
 (select u () {:db db-def})
 (def uu {:condition () :as-table u :fields [[:unitId :Id] :unit_name] :db db-def})
 (select uu () {:db db-def})
+
+)
