@@ -8,7 +8,9 @@
                  [korma "0.3.2"]
                  ]
   :profiles {:dev {:dependencies [[mysql/mysql-connector-java "5.1.25"]
-                                  [com.microsoft/sqljdbc4 "3.0"]]}}
+                                  [midje "1.8.2"]
+                                  [midje-notifier "0.2.0"]
+                                  ]}}
   :source-paths ["src/clj"]
   :java-source-paths ["src/java"]
   )
