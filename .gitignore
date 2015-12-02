@@ -14,3 +14,4 @@ Icon?
 .lein-plugins
 .lein-repl-history
 filenametags
+/.nrepl-port

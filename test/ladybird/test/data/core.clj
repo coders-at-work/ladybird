@@ -1,5 +1,9 @@
 (ns ladybird.test.data.core)
 
+
+;; TODO: rewrite this test
+(comment
+
 ;; init
 (use 'korma.db)
 
@@ -53,7 +57,7 @@
 
 
 ;; test join
-(def joins11 {:p [:inner P [[:id :pid] [:last-name :ln] (make (= :p.id :id))]
+(def joins11 {:p [:inner P [[:id :pid] [:last-name :ln]] (make (= :p.id :id))]
               :t [:inner Tmp [[:id :tid] [:last-update :l-u] [:valid :v]] (make (and (= :p.id :t.id) (in :t.valid [true])))]})
 (dc/query  "profile" {:join-with [:p :t] :joins joins11 :fields [:id]} (make (= :p.last-name "e")))
 
@@ -103,3 +107,5 @@
 (def joins {:p [:inner P [[:id :pid]] (make (= :p.id :id))]
             :t [:inner Tmp [[:id :tid] [:last-update :l-u] :valid] (make (= :p.id :t.id))]})
 (dc/query  "profile" {:join-with [:p :t] :joins joins :fields [:id]} ())
+
+)

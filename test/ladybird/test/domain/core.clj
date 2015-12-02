@@ -2,6 +2,10 @@
     (:use ladybird.test.data.core)
     )
 
+;; TODO: rewrite this test
+(comment
+
+
 (use 'ladybird.data.enum :reload)
 
 (defenum COLOR :blue "blue" :red "red" :green "green" :brown "brown" :black "black" :white "white")
@@ -21,3 +25,5 @@
 (def p-joins2 {:pr [:inner Profile [[:id :profile-id] :color] (make (and (= :pr.id :id) (= :pr.color :black)))] :t [:inner Tmp [[:id :tid] [:last-update :l-u] [:valid :v]] (make (and (= :pr.id :t.id) ))]})
 
 (query-p (merge P {:join-with [:pr :t] :joins p-joins2}) ())
+
+)
