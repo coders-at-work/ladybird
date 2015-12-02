@@ -2,6 +2,7 @@
 /lib
 /classes
 /checkouts
+/dev-resources
 pom.xml
 pom.xml.asc
 Icon?
