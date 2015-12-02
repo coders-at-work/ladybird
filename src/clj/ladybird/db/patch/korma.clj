@@ -4,7 +4,8 @@
               [korma.sql.engine :as eng]
               [korma.sql.fns :as fns]
               [korma.sql.utils :as ku]
-              ))
+              )
+    (:refer-clojure :exclude [update]))
 
 ;; update patch
 (defmacro ^{:private true} make-query
