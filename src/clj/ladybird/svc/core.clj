@@ -1,6 +1,8 @@
 (ns ladybird.svc.core
     (:require [ladybird.data.validate-core :as v]
-              [ladybird.misc.exception-handler :as exh])
+              [ladybird.misc.exception-handler :as exh]
+              [ladybird.core :refer (chain-gen)]
+              )
     )
 
 (defn encapsule-body [{:keys [body] :as meta}]
@@ -67,8 +69,55 @@
 
 ;; service generation functions
 (def ^:dynamic *generate-fns* [encapsule-body transform check-and-bind catch-forms gen-defn] )
+(def ^:const default-gen-fns [encapsule-body transform check-and-bind catch-forms gen-defn] )
 
 ;; service macro
+(defmacro svc
+  "
+  Generate service code. Parameters svc-name, doc-string, prototype, options and body will be put into a map at first. Then the map will be processed through chaining functions in gen-fns to generate service code.
+  Params:
+     gen-fns      --   functions to generate service code, the left most function will be called first, and it will be passed a argument of map. All arguments except for gen-fns will be put into the map with keywordized keys. See also ladybird.core/chain-gen.
+     svc-name     --   a symbol, the service name
+     doc-string   --   a doc string
+     prototype    --   biding form, like similar parts in defn, fn, loop, for, etc., the actual data structure is determined by the implementation of the service
+     options      --   normally is a map, can be any initial meta data
+     body         --   code body
+
+  Ex:
+     (svc [encapsule-body transform check-and-bind catch-forms gen-defn] a \"a\" [a b c d] {} (str [a b c d]))
+  "
+  [gen-fns svc-name doc-string prototype options & body]
+  (let [meta `{:svc '~svc-name :doc-string ~doc-string :prototype '~prototype :options '~options :body '~body}
+         ]
+     `(chain-gen ~meta ~@gen-fns)))
+
+(defmacro s-svc
+  "
+  Generate service code. It is the same as svc, except that you can ignore the options if there is no content in it. Can be used to define your own version of service generating. See also ladybird.svc.core/defsvc.
+  Params:
+     See also ladybird.svc.core/svc
+
+  Examples:
+      (s-svc [encapsule-body transform check-and-bind catch-forms gen-defn] a \"a\" [a b c d] (str [a b c d]))
+  "
+  [gen-fns svc-name doc-string prototype & options-body]
+  (let [[form] options-body
+        [options body] (if (and (map? form) (> (count options-body) 1)) [form (rest options-body)] [nil options-body])
+        ]
+    `(svc ~gen-fns ~svc-name ~doc-string ~prototype ~options ~@body)))
+
+(defmacro defsvc
+  "
+  Defines a default service. It is the same as SVC, except that you can ignore the options if there is no content in it.
+
+  Examples:
+      (defsvc a \"a\" [a b c d] (str [a b c d]))
+  "
+  [svc-name doc-string prototype & options-body]
+  `(s-svc ~default-gen-fns ~svc-name ~doc-string ~prototype ~@options-body))
+
+
+;; TODO: remove all the following code
 (defmacro SVC
   "
   Creates a service. The default implementation will generate a function with prototype and body, and catching and logging all exceptions thrown by body as error. And you can specify local validation and conversion, returned value convertion in options.
@@ -89,7 +138,7 @@
          ]
      (eval (~'generate-fn ~'meta))))
 
-(defmacro defsvc
+#_(defmacro defsvc
   "
   Defines a service. It is the same as SVC, except that you can ignore the options if there is no content in it.
 
