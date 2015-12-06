@@ -138,7 +138,7 @@
          ]
      (eval (~'generate-fn ~'meta))))
 
-#_(defmacro defsvc
+(defmacro defsvc-old
   "
   Defines a service. It is the same as SVC, except that you can ignore the options if there is no content in it.
 
@@ -157,4 +157,4 @@
   "
   [binding-val & args]
   `(binding [*generate-fns* ~binding-val]
-            (defsvc ~@args)))
+            (defsvc-old ~@args)))
