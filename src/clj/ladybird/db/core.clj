@@ -1,5 +1,4 @@
 (ns ladybird.db.core
-    (:use [ladybird.util.core :only (def-bindable)])
     (:require [ladybird.db.patch.korma :as dbk]))
 
 
