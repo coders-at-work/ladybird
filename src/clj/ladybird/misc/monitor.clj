@@ -103,6 +103,7 @@
 (defn h-stack? [st]
   (and (vector? st) (= ::h (first st))))
 
+;; TODO: can we mark failed function explicitly?
 (defn call-stack-str []
   (let [call-stack (call-stack-info)
         f #(cond
