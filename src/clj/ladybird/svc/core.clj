@@ -85,6 +85,15 @@
 
   Ex:
      (svc [encapsule-body transform check-and-bind catch-forms gen-defn] a \"a\" [a b c d] {} (str [a b c d]))
+
+     (svc [encapsule-body transform check-and-bind catch-forms gen-defn]
+          a \"a\" [a b c d] {:check-and-bind [a [not-nil is-boolean]
+                                              b not-nil
+                                              c [:to inc]
+                                              d [not-nil :to dec]]
+                             :to str}
+        [a b c d])
+     (a false 2 3 4) => \"[false 2 4 3]\"
   "
   [gen-fns svc-name doc-string prototype options & body]
   (let [meta `{:svc '~svc-name :doc-string ~doc-string :prototype '~prototype :options '~options :body '~body}
@@ -108,53 +117,10 @@
 
 (defmacro defsvc
   "
-  Defines a default service. It is the same as SVC, except that you can ignore the options if there is no content in it.
+  Defines a default service. The default implementation will generate a function with prototype and body, and catching and logging all exceptions thrown by body as error. And you can specify local validation and conversion, returned value convertion in options.
 
   Examples:
       (defsvc a \"a\" [a b c d] (str [a b c d]))
   "
   [svc-name doc-string prototype & options-body]
   `(s-svc ~default-gen-fns ~svc-name ~doc-string ~prototype ~@options-body))
-
-
-;; TODO: remove all the following code
-(defmacro SVC
-  "
-  Creates a service. The default implementation will generate a function with prototype and body, and catching and logging all exceptions thrown by body as error. And you can specify local validation and conversion, returned value convertion in options.
-  You can create your own version of defsvc by bingding *generate-fns*. See binding-svc.
-
-  Examples:
-      (SVC a \"a\" [a b c d] {:check-and-bind [a [not-nil is-boolean]
-                                               b not-nil
-                                               c [:to inc]
-                                               d [not-nil :to dec]]
-                              :to str}
-        [a b c d])
-      (a false 2 3 4) -> \"[false 2 4 3]\"
-  "
-  [svc-name doc-string prototype options & body]
-  `(let [~'generate-fn (->> (reverse *generate-fns*) (apply comp))
-         ~'meta {:svc '~svc-name :doc-string '~doc-string :prototype '~prototype :options '~options :body '~body}
-         ]
-     (eval (~'generate-fn ~'meta))))
-
-(defmacro defsvc-old
-  "
-  Defines a service. It is the same as SVC, except that you can ignore the options if there is no content in it.
-
-  Examples:
-      (defsvc a \"a\" [a b c d] (str [a b c d]))
-  "
-  [svc-name doc-string prototype & body]
-  (let [[form] body
-        [options body] (if (and (map? form) (> (count body) 1)) [form (rest body)] [{} body])
-        ]
-    `(SVC ~svc-name ~doc-string ~prototype ~options ~@body)))
-
-(defmacro binding-svc
-  "
-  First binding *generate-fns* with binding-val, then call defsvc with args.
-  "
-  [binding-val & args]
-  `(binding [*generate-fns* ~binding-val]
-            (defsvc-old ~@args)))

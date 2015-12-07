@@ -25,8 +25,4 @@
      (chain-gen {:v 3} #(assoc % :f `(inc ~(:v %))) (fn [m] `(* 2 ~(:f m)))) => 8
   "
   [meta-m & gen-fns]
-  `(eval (chain-proc ~meta-m ~@gen-fns))
-  ;; TODO: remove the following code
-  #_(let [gen-fns (vec gen-fns)]
-    `(let [gen-fn# (->> (reverse ~gen-fns) (apply comp))]
-       (eval (gen-fn# ~meta-m)))))
+  `(eval (chain-proc ~meta-m ~@gen-fns)))
