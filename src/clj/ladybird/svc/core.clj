@@ -2,8 +2,7 @@
     (:require [ladybird.data.validate-core :as v]
               [ladybird.misc.exception-handler :as exh]
               [ladybird.core :refer (chain-gen)]
-              )
-    )
+              ))
 
 (defn encapsule-body [{:keys [body] :as meta}]
   (let [body-form `(do ~@body)]
@@ -68,7 +67,6 @@
     `(defn ~svc ~doc-string ~args ~body-form)))
 
 ;; service generation functions
-(def ^:dynamic *generate-fns* [encapsule-body transform check-and-bind catch-forms gen-defn] )
 (def ^:const default-gen-fns [encapsule-body transform check-and-bind catch-forms gen-defn] )
 
 ;; service macro
