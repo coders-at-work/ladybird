@@ -252,18 +252,9 @@
     `(defn ~delete-by-fn ~delete-by-fn-doc-string [condition#]
        (delete-record! ~(symbol domain-name) condition#))))
 
-(defn- delete-fn-impl [get-fn delete-by-fn pk condition]
-       (if (get-fn pk)
-         (do
-           (delete-by-fn condition)
-           (if (get-fn pk) 0 1))
-         0))
-
 (defn- generate-delete-fn [{:keys [primary-key delete-fn-meta delete-by-fn-meta get-fn-meta] :as domain-meta}]
   (when primary-key
-    (let [[get-fn-name] get-fn-meta
-          get-fn (symbol get-fn-name)
-          [delete-by-fn-name] delete-by-fn-meta
+    (let [[delete-by-fn-name] delete-by-fn-meta
           delete-by-fn (symbol delete-by-fn-name)
           [delete-fn-name delete-fn-doc-string] delete-fn-meta
           delete-fn (symbol delete-fn-name)
@@ -272,7 +263,7 @@
       `(defn ~delete-fn ~delete-fn-doc-string [~'rec]
          (if (empty? ~'rec)
            0
-           (#'ladybird.domain.core/delete-fn-impl ~get-fn ~delete-by-fn (~primary-key ~'rec) ~condition))))))
+           (~delete-by-fn ~condition))))))
 
 (defn- generate-validator [{:keys [domain-name validate-fn-meta] :as domain-meta}]
   (let [[validator-name] validate-fn-meta]

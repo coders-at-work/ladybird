@@ -3,30 +3,7 @@
               [korma.db :as kdb]
               [korma.sql.engine :as eng]
               [korma.sql.fns :as fns]
-              [korma.sql.utils :as ku])
-    (:refer-clojure :exclude [update]))
-
-;; update patch
-(defmacro ^{:private true} make-query
-  "a copy of korma.core/make-query. The only reason it is here is because korma.core/make-query is private, and it is hard to call a private macro in other namespace"
-  [ent m]
-  `(let [ent# ~ent]
-     (if (:type ent#)
-       ent#
-       (let [~'this-query (kc/empty-query ent#)]
-         (merge ~'this-query ~m)))))
-
-(defn update*
-  "same as korma.core/update*, except that (:results returned-value) is nil, which will cause update operation returning affected rows count"
-  [ent]
-  (make-query ent {:type :update
-              :fields {}
-              :where []}))
-
-(defmacro update
-  "a repalcement of korma.core/update, to return affected rows count instead"
-  [ent & body]
-  (#'kc/make-query-then-exec #'update* body ent))
+              [korma.sql.utils :as ku]))
 
 ;; where patch
 (defn- where-or-having-form [where*-or-having* query form]
@@ -197,13 +174,13 @@
 
 (defn insert! [ent data {:keys [db] :as spec}]
   (let [[add-db-fn add-options-fn] (make-db-fns db)]
-    (-> (kc/insert* ent) add-db-fn add-options-fn (kc/values data) kc/exec :GENERATED_KEY)))
+    (-> (kc/insert* ent) add-db-fn add-options-fn (kc/values data) kc/exec)))
 
 (defn update! [ent datum where-clause {:keys [db] :as spec}]
   (let [[add-db-fn add-options-fn] (make-db-fns db)
         where-fn (make-where-fn where-clause)
         ]
-    (-> (update* ent) add-db-fn add-options-fn (kc/set-fields datum) where-fn kc/exec first)))
+    (-> (kc/update* ent) add-db-fn add-options-fn (kc/set-fields datum) where-fn kc/exec)))
 
 (defn delete! [ent where-clause {:keys [db] :as spec}]
   (let [[add-db-fn add-options-fn] (make-db-fns db)
