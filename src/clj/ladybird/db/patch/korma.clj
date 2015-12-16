@@ -92,9 +92,12 @@
                          (apply conj ret join-fields))))
                  origin-fields join-with)))
 
+(defn- make-where-fn [where-clause]
+       (if (seq where-clause) #(where % where-clause) identity))
+
 (declare create-join-fn)
 (defn- construct-query [ent where-clause {:keys [fields join-with joins aggregate modifier order offset limit group-by db] :as spec}]
-       (let [where-fn (if-not (empty? where-clause) #(where % where-clause) identity)
+       (let [where-fn (make-where-fn where-clause)
              fields (gather-fields fields join-with joins)
              fields-fn (if fields #(apply kc/fields % fields) identity)
              aggregate-fn (if aggregate (parse-aggregate aggregate) identity)
@@ -197,9 +200,13 @@
     (-> (kc/insert* ent) add-db-fn add-options-fn (kc/values data) kc/exec :GENERATED_KEY)))
 
 (defn update! [ent datum where-clause {:keys [db] :as spec}]
-  (let [[add-db-fn add-options-fn] (make-db-fns db)]
-    (-> (update* ent) add-db-fn add-options-fn (kc/set-fields datum) (where where-clause) kc/exec first)))
+  (let [[add-db-fn add-options-fn] (make-db-fns db)
+        where-fn (make-where-fn where-clause)
+        ]
+    (-> (update* ent) add-db-fn add-options-fn (kc/set-fields datum) where-fn kc/exec first)))
 
 (defn delete! [ent where-clause {:keys [db] :as spec}]
-  (let [[add-db-fn add-options-fn] (make-db-fns db)]
-    (-> (kc/delete* ent) add-db-fn add-options-fn (where where-clause) kc/exec)))
+  (let [[add-db-fn add-options-fn] (make-db-fns db)
+        where-fn (make-where-fn where-clause)
+        ]
+    (-> (kc/delete* ent) add-db-fn add-options-fn where-fn kc/exec)))
