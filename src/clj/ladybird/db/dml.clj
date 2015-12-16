@@ -61,7 +61,7 @@
        data -- can be a map, or a seq of maps
        spec -- see also 'select'
    Return:
-       the id of the first inserted record"
+       same as korma.core/insert"
   ([table data]
    (insert! table data {}))
   ([table data {:keys [fields] :as spec}]
@@ -88,7 +88,7 @@
        where -- same as 'select' 
        spec -- see also 'select'
    Return:
-       nil" 
+       count of deleted rows" 
   ([table where]
    (delete! table where {}))
   ([table where {:keys [fields] :as spec}]

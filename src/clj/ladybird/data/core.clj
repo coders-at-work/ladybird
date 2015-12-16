@@ -259,7 +259,8 @@
        rec -- a map
        recs -- a seq of maps(recs)
        spec -- see also 'query' 
-   Return:"
+   Return:
+       same as ladybird.db.dml/insert!"
   ([table rec]
    (add! table {} rec))
   ([table {:keys [fields converters] :as spec} & recs]
@@ -290,7 +291,7 @@
        condition -- same as 'query'
        spec -- see also 'query'
    Return:
-       "
+       count of removed rows"
   [table {:keys [fields converters] :as spec} condition]
   (let [where (condition-to-where (assoc spec :table table :table-fields fields) condition)]
     (dml/delete! table where spec)))
