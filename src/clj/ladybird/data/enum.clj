@@ -13,7 +13,6 @@
         ]
     `(do
        (def ~name (value-converter ~kvs))
-       (def ~(str-symbol name "-vals") (->> ~kvs reverse (take-nth 2) vec))
        (def ~validator (b/enum-of ~name ~i18n-msg-key)))))
 
 (defmacro defenum [name k1 v1 & kvs]
@@ -42,3 +41,9 @@
   ([name str-fn keys]
    `(let [kvs# (mapcatv list ~keys (map ~str-fn ~keys))]
       (eval (enum-body '~name kvs#)))))
+
+(defn enum-keys [enum]
+  (-> enum out-fn keys))
+
+(defn enum-vals [enum]
+  (-> enum in-fn keys))
