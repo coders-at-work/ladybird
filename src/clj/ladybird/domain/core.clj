@@ -347,7 +347,7 @@
        (def-enum-predicates :status nil)
        (def-enum-predicates Member :status {:active status-active? :inactive status-inactive?})
 
-       or you can specify partial predicate names:
+       or you can specify some of the predicate names:
        (def-enum-predicates Member :status {:active sa?}) => will generate foo.member/sa? and foo.member/status-inactive?
 
        when the domain name is the capitalized camel case of the last section of the containing namespace name, you can ignore the domain:
