@@ -331,7 +331,7 @@
         ~@body))))
 
 (defmacro def-enum-predicates
-  "Define predicates for a domian field whose converter is an enum.
+  "Define predicates for a domian field, the converter of which is an enum.
    Example:
        (ns foo.member)
 
