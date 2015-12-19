@@ -3,6 +3,8 @@
               [ladybird.data.core :as dc]
               [ladybird.data.cond :as c]
               [ladybird.data.validate-core :as v]
+              [ladybird.data.enum :as en]
+              [ladybird.util.symbol :as sym]
               [ladybird.misc.exception :as e]
               ))
 
@@ -327,3 +329,51 @@
          ]
      `(do
         ~@body))))
+
+(defmacro def-enum-predicates
+  "Define predicates for a domian field whose converter is an enum.
+   Example:
+       (ns foo.member)
+
+       (defenum STATUS :active \"A\" :inactive \"I\")
+       (defdomain Member [:id :status STATUS])
+       (def-enum-predicates :status)
+       (status-active? {:status :active}) => true
+       (status-inactive? {:status :inactive}) => true
+       (status-active? {:status :inactive}) => false
+
+       the same as above:
+       (def-enum-predicates Member :status)
+       (def-enum-predicates :status nil)
+       (def-enum-predicates Member :status {:active status-active? :inactive status-inactive?})
+
+       or you can specify partial predicate names:
+       (def-enum-predicates Member :status {:active sa?}) => will generate foo.member/sa? and foo.member/status-inactive?
+
+       when the domain name is the capitalized camel case of the last section of the containing namespace name, you can ignore the domain:
+       (def-enum-predicates :status {:active sa?}) => the same as above
+   "
+  ([field]
+   `(def-enum-predicates ~field nil))
+  ([domain-or-field field-or-pred-name-m]
+   (let [[domain field pred-name-m] (if (keyword? domain-or-field)
+                                      [nil domain-or-field field-or-pred-name-m]
+                                      [domain-or-field field-or-pred-name-m nil])
+         domain (if domain
+                  domain
+                  (let [n (-> (ns-name *ns*) name)
+                        n (-> (re-find #"\.?([^.]+)$" n) second)
+                        n (str/camel-case n :capitalize true)]
+                    (symbol n)))]
+     `(def-enum-predicates ~domain ~field ~pred-name-m)))
+  ([domain field pred-name-m]
+   (let [domain @(resolve domain)
+         enum (-> domain :converters field)
+         ks (en/enum-keys enum)
+         pred-name (fn [k]
+                       (let [kn (if (instance? clojure.lang.Named k) (name k) (str k))
+                             pn (if pred-name-m (pred-name-m k) nil)]
+                         (if pn pn (sym/str-symbol field "-" kn "?"))))
+         def-pred (fn [k] `(defn ~(pred-name k) [o#] (if o# (= ~k (o# ~field)) false)))
+         ]
+     `(do ~@(map def-pred ks)))))
