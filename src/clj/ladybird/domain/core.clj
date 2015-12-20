@@ -338,6 +338,8 @@
        (defenum STATUS :active \"A\" :inactive \"I\")
        (defdomain Member [:id :status STATUS])
        (def-enum-predicates :status)
+       (status-active? nil) => false
+       (status-active? {}) => false
        (status-active? {:status :active}) => true
        (status-inactive? {:status :inactive}) => true
        (status-active? {:status :inactive}) => false
