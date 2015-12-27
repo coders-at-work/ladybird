@@ -41,18 +41,27 @@
                 (keyword? (first x))
                 (keyword? (second x)))))
 
+(defn- partition-fields-def [fields-def]
+       (->> (partition-by field-name-def? fields-def)
+            (partition-all 2 2)))
+
 (defn- parse-fields-def [fields-def]
-       (let [fields-def (partition-by field-name-def? fields-def)
-             fields-def (partition 2 2 nil fields-def)
+       (let [;fields-def (partition-by field-name-def? fields-def)
+             ;fields-def (partition 2 2 nil fields-def)
+             fields-def (partition-fields-def fields-def)
              ]
          (reduce (fn [ret [fields f-def]]
                      (let [ret (apply update-in ret [:fields] conj fields)
                            f (last fields)
-                           {:keys [converters validate]} (create-field-meta f f-def)
-                           ret (if converters (update-in ret [:converters] merge converters) ret)
-                           ret (if validate (update-in ret [:validate] merge validate) ret)
+                           field-meta (create-field-meta f f-def)
+                           ;{:keys [converters validate]} (create-field-meta f f-def)
+                           ;ret (if converters (update-in ret [:converters] merge converters) ret)
+                           ;ret (if validate (update-in ret [:validate] merge validate) ret)
                            ]
-                       ret))
+                       (->> field-meta
+                            (reduce (fn [r [k v]] (update-in r [k] merge v)) ret))
+                       ;ret
+                       ))
                  {:fields []}
                  fields-def)))
 
@@ -68,11 +77,16 @@
    :optimistic-locking-fields -- fields used by optimistic locking, if not specified and fields contains :version or :last-update,
                                  :optimistic-locking-fields will be set to it, if both contained, :version takes precedence. If
                                  :optimistic-locking-fields contains :*, then all fields will be used by optimistic locking.
-   :converters -- a map specifying fields converters.
+   :converters -- a map specifying fields converters
+   :validate   -- a map specifying fields validators
+   :type-hints -- a map specifying type hints of fields
+                  Type hints have no business with domain operations, but are information keeped to be used by other parts in program. They are usually java class symbols but can be any other formats.
+                  e.g.   :type-hints {:field java.lang.Integer}
 
    In addition to the keys above, all keys used by ladybird.data.core/query can be added to domain meta.
+   People are free to add other keys to extend domain mechanism by themselves.
 
-   Ex.
+   e.g.
       {:domain-name \"Pro\"
        :fields [:id :name :age :create-time :last-update]
        :primary-key :id
@@ -289,20 +303,23 @@
                              generate-save-fn generate-delete-by-fn generate-delete-fn generate-query-from-fn generate-validator
                              generate-validate-fn generate-check-fn])
 
-
 (defmacro defdomain
   "Define the data structure of the domain object.
 
    Params:
        domain-name -- the name of the domain, you can refer the data structure by the var named by it after defined the domain 
-       fields -- the fields definition. See also ladybird.domain.core/create-meta for the simplest format accepted by the default implementation.
-                 The definition can contain field converter and validators. The form is: :field, :field converter, :field converter validator-or-validators. Converter and validator-or-validators can be _, means ignoring it.
-                 Ex.
-                    [:a :b :c]
-                    [:a BOOL :b _ not-nil :c :d BOOL [not-nil is-boolean]]
-       meta-data -- other meta data to define the domain. See ladybird.domain.core/create-meta for which meta data is accepted by the default implementation.
+       fields-def -- the fields definition. See also ladybird.domain.core/create-meta for the simplest format accepted by the default implementation.
+                     The definition can contain field converter and validators. The form is: :field, :field converter, :field converter validator-or-validators. Converter and validator-or-validators can be _, means ignoring it.
+                     e.g.
+                        [:a :b :c]
+                        [:a BOOL :b _ not-nil :c :d BOOL [not-nil is-boolean]]
+       meta-data -- a map which contains other meta data to define the domain.
+                    If some content in meta-data is overlapped with the fields definition. The content in meta-data will take precedence.
+                    e.g.
+                        (defdomain A [:a _ not-nil] {:validate {:a is-number}}) =>  the validator of :a is is-number
+                    See ladybird.domain.core/create-meta for built in meta data which is accepted by the default implementation.
    
-   Ex.
+   e.g.
       (use 'ladybird.data.db-converter)
       (use 'ladybird.data.build-in-validator)
       (defdomain Tmp [:id :create-time :last-update :valid]
@@ -329,6 +346,44 @@
          ]
      `(do
         ~@body))))
+
+(defmacro def-typed-domain
+  "Similar with defdomain. The difference is that you can specify type hints in the fields definition vector when you call def-typed-domain.
+
+   There are 4 ways to specify definition of a field.
+     1.  :field
+     2.  :field type-hint
+     3.  :field type-hint converter
+     4.  :field type-hint converter validator-or-validators
+   In all 4 ways, type-hint, converter and validator-or-validators can be _, means ignoring this column.
+     e.g.
+         (def-typed-domain A [:a :b Integer :c Integer BOOL :d Integer BOOL [not-nil is-number]
+                              :e _ BOOL :f _ _ not-nilt :g Integer _ not-nil])
+
+   Same as defdomain. Contents specified in meta map will take precedence over those in fields definition.
+     e.g.
+         (def-typed-domain A [:a Integer] {:type-hints {:a Long}}) => same as (def-typed-domain A [:a] {:type-hints {:a Long}})
+  "
+  ([domain-name fields-def]
+   `(def-typed-domain ~domain-name ~fields-def nil))
+  ([domain-name fields-def meta-data]
+   (let [fields-def (partition-fields-def fields-def)
+         [domain-fields-def type-hints] (reduce (fn [[domain-fields-def type-hints] [fields [type-hint converter validator]]]
+                                                    (let [domain-fields-def (apply conj domain-fields-def fields)
+                                                          type-hints (if (and type-hint (not= '_ type-hint))
+                                                                       (merge type-hints {(last fields) type-hint})
+                                                                       type-hints)
+                                                          converter (if converter converter '_)
+                                                          validator (if validator validator '_)
+                                                          ]
+                                                      [(conj domain-fields-def converter validator) type-hints]))
+                                                [[] nil]
+                                                fields-def)
+         meta-data (if type-hints
+                     (merge {:type-hints type-hints} meta-data)
+                     meta-data)
+         ]
+     `(defdomain ~domain-name ~domain-fields-def ~meta-data))))
 
 (defmacro def-enum-predicates
   "Define predicates for a domian field, the converter of which is an enum.
