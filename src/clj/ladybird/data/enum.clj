@@ -12,7 +12,7 @@
         i18n-msg-key (keyword (qualify-name validator))
         ]
     `(do
-       (def ~name (value-converter ~kvs))
+       (def ~name (-> (value-converter ~kvs) (assoc :type ::enum)))
        (def ~validator (b/enum-of ~name ~i18n-msg-key)))))
 
 (defmacro defenum [name k1 v1 & kvs]
@@ -41,6 +41,10 @@
   ([name str-fn keys]
    `(let [kvs# (mapcatv list ~keys (map ~str-fn ~keys))]
       (eval (enum-body '~name kvs#)))))
+
+;; enum utilities
+(defn enum? [x]
+  (= ::enum (:type x)))
 
 (defn enum-keys [enum]
   (-> enum out-fn keys))
