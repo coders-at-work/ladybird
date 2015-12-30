@@ -122,3 +122,30 @@
   "
   [svc-name doc-string prototype & options-body]
   `(s-svc ~default-gen-fns ~svc-name ~doc-string ~prototype ~@options-body))
+
+(defmacro SVC
+  "
+   A more def-like service defining macro. Options must be prior to prototype if it is presented.
+
+   e.g.
+       (SVC [encapsule-body transform check-and-bind catch-forms gen-defn]
+            a \"a\" {:check-and-bind [a [not-nil is-boolean]
+                                      b not-nil
+                                      c [:to inc]
+                                      d [not-nil :to dec]]
+                     :to str}
+            [a b c d]
+            [a b c d])
+       (a false 2 3 4) => \"[false 2 4 3]\"
+  "
+  [gen-fns svc-name doc-string & [options-or-prototype :as options-prototype-body]]
+  (let [options (when (map? options-or-prototype) options-or-prototype)
+        [prototype body] (if options
+                           [(second options-prototype-body) (drop 2 options-prototype-body)]
+                           [options-or-prototype (rest options-prototype-body)])
+        body (or (seq body) [nil])
+        _ (println "body: " body)
+        ]
+    (if options
+      `(s-svc ~gen-fns ~svc-name ~doc-string ~prototype ~options ~@body)
+      `(s-svc ~gen-fns ~svc-name ~doc-string ~prototype ~@body))))

@@ -58,3 +58,22 @@
              (b 2) => 1)
        (fact "a comprehensive example"
              (c false 2 3 4) => "[false 2 4 3]"))
+
+(facts "about SVC"
+       (fact "options map is prior to prototype"
+             (SVC [encapsule-body transform gen-defn] a "a" {:to #(str %)} [])
+             (a) => "")
+       (fact "options map can be ignored"
+             (SVC [encapsule-body transform gen-defn] a "a" [])
+             (a) => nil)
+       (fact "a comprehensive example"
+             (let [f (SVC
+                       [encapsule-body transform check-and-bind (fn [{:keys [prototype body-form]}] `(fn ~prototype ~body-form))]
+                       a "a" {:check-and-bind [a [v/not-nil v/is-boolean]
+                                               b v/not-nil
+                                               c [:to inc]
+                                               d [v/not-nil :to dec]]
+                              :to str}
+                       [a b c d]
+                       [a b c d])]
+               (f false 2 3 4) => "[false 2 4 3]")))

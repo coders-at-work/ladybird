@@ -46,22 +46,15 @@
             (partition-all 2 2)))
 
 (defn- parse-fields-def [fields-def]
-       (let [;fields-def (partition-by field-name-def? fields-def)
-             ;fields-def (partition 2 2 nil fields-def)
-             fields-def (partition-fields-def fields-def)
+       (let [fields-def (partition-fields-def fields-def)
              ]
          (reduce (fn [ret [fields f-def]]
                      (let [ret (apply update-in ret [:fields] conj fields)
                            f (last fields)
                            field-meta (create-field-meta f f-def)
-                           ;{:keys [converters validate]} (create-field-meta f f-def)
-                           ;ret (if converters (update-in ret [:converters] merge converters) ret)
-                           ;ret (if validate (update-in ret [:validate] merge validate) ret)
                            ]
                        (->> field-meta
-                            (reduce (fn [r [k v]] (update-in r [k] merge v)) ret))
-                       ;ret
-                       ))
+                            (reduce (fn [r [k v]] (update-in r [k] merge v)) ret))))
                  {:fields []}
                  fields-def)))
 
