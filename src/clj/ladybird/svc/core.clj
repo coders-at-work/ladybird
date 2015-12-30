@@ -145,6 +145,4 @@
                            [options-or-prototype (rest options-prototype-body)])
         body (or (seq body) [nil])
         ]
-    (if options
-      `(s-svc ~gen-fns ~svc-name ~doc-string ~prototype ~options ~@body)
-      `(s-svc ~gen-fns ~svc-name ~doc-string ~prototype ~@body))))
+    `(s-svc ~gen-fns ~svc-name ~doc-string ~prototype ~options ~@body)))

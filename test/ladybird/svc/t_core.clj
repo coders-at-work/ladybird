@@ -66,6 +66,9 @@
        (fact "options map can be ignored"
              (SVC [encapsule-body transform gen-defn] a "a" [])
              (a) => nil)
+       (fact "unlike s-svc, options map will not be ignored implicitly"
+             (SVC [encapsule-body transform gen-defn] a "a" [] {})
+             (a) => {})
        (fact "a comprehensive example"
              (let [f (SVC
                        [encapsule-body transform check-and-bind (fn [{:keys [prototype body-form]}] `(fn ~prototype ~body-form))]
