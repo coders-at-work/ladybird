@@ -144,7 +144,6 @@
                            [(second options-prototype-body) (drop 2 options-prototype-body)]
                            [options-or-prototype (rest options-prototype-body)])
         body (or (seq body) [nil])
-        _ (println "body: " body)
         ]
     (if options
       `(s-svc ~gen-fns ~svc-name ~doc-string ~prototype ~options ~@body)
