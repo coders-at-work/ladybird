@@ -13,7 +13,7 @@
       (with-aa 4 (inc (aa)))    ;;=> 5"
   [name init-form]
   (let [var-name (sym/str-symbol "*" name "*")
-        var-sym (with-meta var-name {:dynamic true :private true})
+        var-sym (with-meta var-name {:dynamic true})
         qualified-var-sym (symbol (str/qualify-name var-name))
         ]
     `(do
