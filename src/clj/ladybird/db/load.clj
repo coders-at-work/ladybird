@@ -14,7 +14,9 @@
 (defn parse-db-def [{:keys [dbms-type password decrypter] :as db-def}]
   (let [db-helper (db-helpers dbms-type)]
     (cond
+      ;; TODO: Since korma 0.4.2 sets delimiters for mysql automatically, it is fine to remove :jndi-mysql in future.
       (= :jndi-mysql dbms-type) (-> (dissoc db-def :dbms-type) (assoc :delimiters "`"))
+      (= :jndi dbms-type) (dissoc db-def :dbms-type)
       (nil? db-helper) (throw (e/sys-error :load-db-def-failed "Unknown dbms type" dbms-type))
       :others (let [passowrd (if decrypter (decrypter password) password)]
                 (-> (dissoc db-def :dbms-type :decrypter) (assoc :password password) db-helper)))))
