@@ -5,6 +5,37 @@
               [korma.sql.fns :as fns]
               [korma.sql.utils :as ku]))
 
+;; debugging
+(def korma-exec-sql @#'kdb/exec-sql)
+
+(def ^:private debug-result* (atom nil))
+(defn debug-result
+  "
+   Gets the last information kept in debug mode.
+  "
+  [] @debug-result*)
+
+(defn- debug-exec-sql [{:keys [sql-str params] :as query}]
+       (println "sql execution info:")
+       (println sql-str "   " params)
+       (println)
+       (reset! debug-result* [sql-str params])
+       (korma-exec-sql query))
+
+(defn enter-debug-mode!
+  "
+   Alters the root binding of #'korma.db/exec-sql to print and kepp the information of sql execution. Mustn't be called in production code.
+  "
+  []
+  (alter-var-root #'kdb/exec-sql (fn [_] debug-exec-sql)))
+
+(defn exit-debug-mode!
+  "
+   Restores the root binding of #'korma.db/exec-sql.
+  "
+  []
+  (alter-var-root #'kdb/exec-sql (fn [_] korma-exec-sql)))
+
 ;; where patch
 (defn- where-or-having-form [where*-or-having* query form]
        (let [primitive-form? (or (map? form) (sequential? form))
