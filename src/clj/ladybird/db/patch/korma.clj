@@ -36,6 +36,24 @@
   []
   (alter-var-root #'kdb/exec-sql (fn [_] korma-exec-sql)))
 
+;; limit offset patch
+(def korma-sql-limit-offset eng/sql-limit-offset)
+
+(defn- sqlserver-limit-offset [{:keys [limit offset] :as query}]
+       (let [limit-sql (when limit
+                         (format " fetch next %d rows only" limit))
+             offset (or offset (and limit 0))
+             offset-sql (when offset
+                          (format " offset %d rows" offset))]
+             (update-in query [:sql-str] str offset-sql limit-sql)))
+
+(defn sql-limit-offset [{:keys [limit offset] :as query}]
+  (if (= "sqlserver" (:subprotocol eng/*bound-options*))
+    (sqlserver-limit-offset query)
+    (korma-sql-limit-offset query)))
+
+(alter-var-root #'eng/sql-limit-offset  (fn [_] sql-limit-offset))
+
 ;; where patch
 (defn- where-or-having-form [where*-or-having* query form]
        (let [primitive-form? (or (map? form) (sequential? form))
