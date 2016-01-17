@@ -229,6 +229,7 @@
                              Ex. :join-with [:p :e]
                :order -- see also ladybird.db.dml/select, the difference is that it accepts raw field names here
                        Ex.
+                          :order [(ladybird.data.cond/raw \"valid\") :desc :id :desc]
                           :order [[(ladybird.data.cond/raw \"valid\") :desc :id :desc]]
                :offset -- same as ladybird.db.dml/select
                :limit -- same as ladybird.db.dml/select

@@ -93,10 +93,21 @@
              add-options-fn #(if db-options (assoc % :options db-options) %)]
          [add-db-fn add-options-fn]))
 
+(defn to-korma-order [order]
+  (let [order (partition-by #(#{:asc :desc} %) order)
+        order (partition-all 2 2 order)
+        field-order-fn (fn [fields] (mapcat #(if (vector? %) % (vector % :asc)) fields))
+        order (mapcat
+                (fn [[fields [dir]]]
+                    (if dir
+                      (-> (drop-last fields) field-order-fn (concat [(last fields) dir]))
+                      (field-order-fn fields)))
+                order)
+        ]
+    (flatten order)))
+
 (defn- make-order-fn [order]
-       (let [order (map #(if (keyword? %) [% :asc] %) order)
-             order (flatten order)
-             ]
+       (let [order (to-korma-order order)]
          (fn [query]
              (loop [q query
                     o order
