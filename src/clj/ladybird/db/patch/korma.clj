@@ -3,7 +3,8 @@
               [korma.db :as kdb]
               [korma.sql.engine :as eng]
               [korma.sql.fns :as fns]
-              [korma.sql.utils :as ku]))
+              [korma.sql.utils :as ku]
+              [clojure.string :as clj-str]))
 
 ;; debugging
 (def korma-exec-sql @#'kdb/exec-sql)
@@ -94,17 +95,16 @@
          [add-db-fn add-options-fn]))
 
 (defn to-korma-order [order]
-  (let [order (partition-by #(#{:asc :desc} %) order)
-        order (partition-all 2 2 order)
-        field-order-fn (fn [fields] (mapcat #(if (vector? %) % (vector % :asc)) fields))
-        order (mapcat
-                (fn [[fields [dir]]]
-                    (if dir
-                      (-> (drop-last fields) field-order-fn (concat [(last fields) dir]))
-                      (field-order-fn fields)))
+  (let [order (mapcat
+                #(if (vector? %)
+                   %
+                   (let [[field direction] (-> % name (clj-str/split #"#"))
+                         direction (or direction "asc")
+                         ]
+                     [(keyword field) (keyword direction)]))
                 order)
         ]
-    (flatten order)))
+    order))
 
 (defn- make-order-fn [order]
        (let [order (to-korma-order order)]

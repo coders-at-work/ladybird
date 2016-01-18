@@ -42,10 +42,10 @@
        (fact "will be ordered by asc if direction is not specified"
              (to-korma-order [:id]) => '(:id :asc))
        (fact "can specify direction"
-             (to-korma-order [:id :desc]) => '(:id :desc))
+             (to-korma-order [:id#desc]) => '(:id :desc))
        (fact "can mix the two flavor above"
-             (to-korma-order [:id :name :desc :age]) => '(:id :asc :name :desc :age :asc))
+             (to-korma-order [:id :name#desc :age]) => '(:id :asc :name :desc :age :asc))
        (fact "can put :field :dir pairs in a vector"
              (to-korma-order [:id [:name :desc :age :asc]]) => '(:id :asc :name :desc :age :asc))
        (fact "a comprehensive example"
-             (to-korma-order [:id :a :b :desc :c [:name :desc :age :asc] :d :desc :e]) => '(:id :asc :a :asc :b :desc :c :asc :name :desc :age :asc :d :desc :e :asc)))
+             (to-korma-order [:id :a :b#desc :c#asc [:name :desc :age :asc] :d#desc :e]) => '(:id :asc :a :asc :b :desc :c :asc :name :desc :age :asc :d :desc :e :asc)))

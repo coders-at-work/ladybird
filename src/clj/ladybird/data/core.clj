@@ -227,9 +227,9 @@
                                          :e [:left Email [[:address :addr]] '(= :p.id :e.person-id)]}}
                :join-with -- a vector of join names, each name is a key in :joins. Only these join specs will be used in query.
                              Ex. :join-with [:p :e]
-               :order -- see also ladybird.db.dml/select, the difference is that it accepts raw field names here
+               :order -- see also ladybird.db.dml/select
                        Ex.
-                          :order [(ladybird.data.cond/raw \"valid\") :desc :id :desc]
+                          :order [[(ladybird.data.cond/raw \"valid\") :desc] :id#desc]
                           :order [[(ladybird.data.cond/raw \"valid\") :desc :id :desc]]
                :offset -- same as ladybird.db.dml/select
                :limit -- same as ladybird.db.dml/select

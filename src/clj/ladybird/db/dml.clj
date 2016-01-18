@@ -39,10 +39,10 @@
                                    :modifier \"distinct\"
                    :order -- a vector of order-by specs. Each element can be one of the following forms:
                                    :field-name -- means 'order by field-name asc'
-                                   :field-name :dir -- means 'order by field-name dir'
-                                   [:field-name :dir :another-field :another-dir ...] -- means 'order by field-name dir, another-field another-dir...', direction can be asc or desc. This form is provided only for backward compatibility.
+                                   :field-name#dir -- means 'order by field-name dir'
+                                   [:field-name :dir :another-field :another-dir ...] -- means 'order by field-name dir, another-field another-dir...', direction can be asc or desc.
                                    Ex.
-                                      :order [:age :start-time :desc :end-time :create-time]
+                                      :order [:age :start-time#desc :end-time#asc :create-time]
                                       :order [:age [:start-time :desc :end-time :asc] :create-time]
                    :offset -- a number means from which position the selecting results begin to return
                    :limit -- a number means the maximum rows will be returned
