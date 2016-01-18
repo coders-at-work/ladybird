@@ -10,9 +10,13 @@
 (defn enum-body [name kvs]
   (let [validator (str-symbol "enum:" name)
         i18n-msg-key (keyword (qualify-name validator))
+        ks (take-nth 2 kvs)
+        vs (take-nth 2 (drop 1 kvs))
+        k-strs (map clojure.core/name ks)
+        c {:in (apply hash-map (reverse kvs)) :out (zipmap (concat ks k-strs) (concat vs vs))}
         ]
     `(do
-       (def ~name (-> (value-converter ~kvs) (assoc :type ::enum)))
+       (def ~name (assoc ~c :type ::enum))
        (def ~validator (b/enum-of ~name ~i18n-msg-key)))))
 
 (defmacro defenum [name k1 v1 & kvs]
