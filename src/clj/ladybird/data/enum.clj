@@ -7,16 +7,27 @@
     (:require [ladybird.data.validate-core :as v]
               [ladybird.data.build-in-validator :as b]))
 
+(defn- enum-converter [kvs]
+       (let [symbol-k-fn (fn [k] (if (symbol? k) `'~k k))
+             in-vks (->> kvs reverse (map-indexed (fn [i e] (if (even? i) e (symbol-k-fn e)))))
+             out-kvs (partition-all 2 kvs)
+             out-kvs (mapcat
+                       (fn [[k v]]
+                           (if (and
+                                 (instance? clojure.lang.Named k)
+                                 (not (string? k)))
+                             [(symbol-k-fn k) v (clojure.core/name k) v]
+                             [k v]))
+                       out-kvs)
+             ]
+         {:in (apply hash-map in-vks) :out (apply hash-map out-kvs)}))
+
 (defn enum-body [name kvs]
   (let [validator (str-symbol "enum:" name)
         i18n-msg-key (keyword (qualify-name validator))
-        ks (take-nth 2 kvs)
-        vs (take-nth 2 (drop 1 kvs))
-        k-strs (map clojure.core/name ks)
-        c {:in (apply hash-map (reverse kvs)) :out (zipmap (concat ks k-strs) (concat vs vs))}
         ]
     `(do
-       (def ~name (assoc ~c :type ::enum))
+       (def ~name (assoc ~(enum-converter kvs) :type ::enum))
        (def ~validator (b/enum-of ~name ~i18n-msg-key)))))
 
 (defmacro defenum [name k1 v1 & kvs]

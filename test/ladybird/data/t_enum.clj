@@ -13,9 +13,18 @@
              (defenum E :a 1 :b 2)
              enum:E => fn?)
        (fact "the in-fn of converter converts values to keys, and the out-fn converts keys to values"
-             (defenum E :a 1 :b 2)
+             (defenum E :a 1 :b 2 c 3 4 5)
              ((in-fn E) 1) => :a
-             ((out-fn E) :b) => 2)
+             ((in-fn E) 3) => 'c
+             ((in-fn E) 5) => 4
+             ((out-fn E) :b) => 2
+             ((out-fn E) 'c) => 3
+             ((out-fn E) 4) => 5)
+       (fact "if a key is an instance of clojure.lang.Named, the out-fn of converter will also map (name key) to key's value"
+             (defenum E "a" 1 :b 2 c 3)
+             ((out-fn E) "a") => 1
+             ((out-fn E) "b") => 2
+             ((out-fn E) "c") => 3)
        (fact "the validate fn validates if the argument is one of the enum keys"
              (defenum E :a 1 :b 2)
              (enum:E :a) => true
