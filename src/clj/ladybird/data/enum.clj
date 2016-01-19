@@ -9,7 +9,8 @@
 
 (defn- enum-converter [kvs]
        (let [symbol-k-fn (fn [k] (if (symbol? k) `'~k k))
-             in-vks (->> kvs reverse (map-indexed (fn [i e] (if (even? i) e (symbol-k-fn e)))))
+             stored-kvs (->> kvs (map-indexed (fn [i e] (if (odd? i) e (symbol-k-fn e)))))
+             in-vks (reverse stored-kvs)
              out-kvs (partition-all 2 kvs)
              out-kvs (mapcat
                        (fn [[k v]]
@@ -20,7 +21,7 @@
                              [k v]))
                        out-kvs)
              ]
-         {:in (apply hash-map in-vks) :out (apply hash-map out-kvs)}))
+         {:in (apply hash-map in-vks) :out (apply hash-map out-kvs) ::spec-kvs (vec stored-kvs)}))
 
 (defn enum-body [name kvs]
   (let [validator (str-symbol "enum:" name)
@@ -66,3 +67,17 @@
 
 (defn enum-vals [enum]
   (-> enum in-fn keys))
+
+(defn spec-keys
+  "
+   Get the keys in the original enum spec.
+  "
+  [enum]
+  (->> enum ::spec-kvs (take-nth 2)))
+
+(defn spec-vals
+  "
+   Get the values in the original enum spec.
+  "
+  [enum]
+  (->> enum ::spec-kvs (drop 1) (take-nth 2)))

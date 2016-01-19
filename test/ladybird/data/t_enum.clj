@@ -31,7 +31,10 @@
              (enum:E 1) => (just [::enum:E string?]))
        (fact "the enum converter contains [:type :ladybird.data.enum/enum] map entry"
              (defenum E :a 1 :b 2)
-             E => (contains {:type :ladybird.data.enum/enum})))
+             E => (contains {:type :ladybird.data.enum/enum}))
+       (fact "the enum converter contains :ladybird.data.enum/spec-kvs slot"
+             (defenum E :a 1 b 2)
+             E => (contains {:ladybird.data.enum/spec-kvs [:a 1 'b 2]})))
 
 (facts "about enum utilities"
        (fact "can tell whether a data structure is an enum"
@@ -40,4 +43,16 @@
              (enum? 1) => false
              (enum? {}) => false
              (enum? nil) => false
-             (enum? ()) => false))
+             (enum? ()) => false)
+       (fact "can get the keys of out-fn"
+             (defenum E :a 1 b 2)
+             (enum-keys E) => (just [:a 'b "a" "b"] :in-any-order))
+       (fact "can get the vals of out-fn"
+             (defenum E :a 1 b 2)
+             (enum-vals E) => (just [1 2] :in-any-order))
+       (fact "can get the keys in the original enum spec"
+             (defenum E :a 1 b 2)
+             (spec-keys E) => '(:a b))
+       (fact "can get the values in the original enum spec"
+             (defenum E :a 1 b 2)
+             (spec-vals E) => '(1 2)))
