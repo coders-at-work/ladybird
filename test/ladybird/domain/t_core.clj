@@ -1,6 +1,7 @@
 (ns ladybird.domain.t-core
     (:require [midje.sweet :refer :all]
               [ladybird.domain.core :refer :all]
+              [ladybird.data.enum :refer (defenum)]
               [ladybird.data.db-converter :refer (BOOL DATETIME)]
               [ladybird.data.build-in-validator :refer (not-nil is-number)]))
 
@@ -141,3 +142,18 @@
                                             :e _ BOOL :f _ _ not-nil :g Integer _ not-nil :h] {:type-hints {:c Long}})
                        =expands-to=>
                        (ladybird.domain.core/defdomain TypedDomain [:a :b _ _ :c BOOL _ :d BOOL [not-nil is-number] :e BOOL _ :f _ not-nil :g _ not-nil :h _ _] {:type-hints {:c Long}})))
+
+(facts "about def-enum-predicates"
+       (future-fact "If the domain is the capitalized camel case of the last section of the containing namespace name, def-enum-predicates can define predicate functions named by field and enum key if the enum field is provided"
+             (defenum STATUS :active "A" :inactive "I")
+             (defdomain Member [:status STATUS])
+             (def-enum-predicates :status))
+       (fact "can define predicate functions named by caller for an enum field in the specified domain if domain, field and functions name mapping are provided"
+             (defenum STATUS :active "A" :inactive "I")
+             (defdomain Member [:status STATUS])
+             (def-enum-predicates Member :status {:active status-active? :inactive status-inactive?})
+             (status-active? nil) => false
+             (status-active? {}) => false
+             (status-active? {:status :active}) => true
+             (status-inactive? {:status :inactive}) => true
+             (status-active? {:status :inactive}) => false))

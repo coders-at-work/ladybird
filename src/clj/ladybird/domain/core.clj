@@ -419,7 +419,7 @@
   ([domain field pred-name-m]
    (let [domain @(resolve domain)
          enum (-> domain :converters field)
-         ks (en/enum-keys enum)
+         ks (en/spec-keys enum)
          pred-name (fn [k]
                        (let [kn (if (instance? clojure.lang.Named k) (name k) (str k))
                              pn (if pred-name-m (pred-name-m k) nil)]
