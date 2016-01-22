@@ -5,58 +5,141 @@
           [ladybird.util.string :only (qualify-name)]
           [ladybird.util.coll :only (mapcatv)])
     (:require [ladybird.data.validate-core :as v]
-              [ladybird.data.build-in-validator :as b]))
+              [ladybird.data.build-in-validator :as b]
+              [clojure.walk :refer (postwalk)]))
 
-(defn- enum-converter [kvs]
-       (let [symbol-k-fn (fn [k] (if (symbol? k) `'~k k))
-             stored-kvs (->> kvs (map-indexed (fn [i e] (if (odd? i) e (symbol-k-fn e)))))
+(defn- quote-symbol [x]
+       (if (symbol? x) `'~x x))
+
+(defn- quote-all-symbols [kvs]
+       (->> kvs
+            (map quote-symbol)
+            vec))
+
+(defn- enum-converter [is-strict kvs]
+       (let [stored-kvs (quote-all-symbols kvs)
              in-vks (reverse stored-kvs)
              out-kvs (partition-all 2 kvs)
              out-kvs (mapcat
                        (fn [[k v]]
-                           (if (and
-                                 (instance? clojure.lang.Named k)
-                                 (not (string? k)))
-                             [(symbol-k-fn k) v (clojure.core/name k) v]
-                             [k v]))
+                           (let [v (quote-symbol v)]
+                             (if (and
+                                   (instance? clojure.lang.Named k)
+                                   (not (string? k)))
+                               (if is-strict
+                                 [(quote-symbol k) v]
+                                 [(quote-symbol k) v (clojure.core/name k) v])
+                               [k v])))
                        out-kvs)
              ]
          {:in (apply hash-map in-vks) :out (apply hash-map out-kvs) ::spec-kvs (vec stored-kvs)}))
 
 (defn enum-body [name kvs]
-  (let [validator (str-symbol "enum:" name)
+  (let [is-strict (-> (meta name) :strict)
+        validator (str-symbol "enum:" name)
         i18n-msg-key (keyword (qualify-name validator))
         ]
     `(do
-       (def ~name (assoc ~(enum-converter kvs) :type ::enum))
+       (def ~name (assoc ~(enum-converter is-strict kvs) :type ::enum))
        (def ~validator (b/enum-of ~name ~i18n-msg-key)))))
 
-(defmacro defenum [name k1 v1 & kvs]
+(defmacro defenum
+  "
+   Defines a converter and a validator for an enum.
+
+   e.g.
+       [ladybird.data.converter-core :refer (in-fn out-fn)]
+       (defenum E :a 1 :b 2 c 3 4 5)
+       ((in-fn E) 1) => :a
+       ((in-fn E) 3) => 'c
+       ((in-fn E) 5) => 4
+       ((out-fn E) :b) => 2
+       ((out-fn E) 'c) => 3
+       ((out-fn E) 4) => 5)
+       (enum:E :a) => true
+
+   In normal, if a key is an instance of clojure.lang.Named, the out-fn of converter will also map (name key) to key's value.
+   e.g.
+       (defenum E \"a\" 1 :b 2 c 3)
+       ((out-fn E) \"a\") => 1
+       ((out-fn E) \"b\") => 2
+       ((out-fn E) \"c\") => 3)
+       (enum:E \"a\") => true
+
+   You can forbid this behavior with {:strict true} meta.
+   e.g.
+       (defenum ^:strict E \"a\" 1 :b 2 c 3)
+       ((out-fn E) \"a\") => 1
+       ((out-fn E) \"b\") => nil
+       ((out-fn E) \"c\") => nil
+  "
+  [name k1 v1 & kvs]
   (let [kvs (apply vector k1 v1 kvs)]
     (enum-body name kvs)))
 
-(defn- ordered-kvs-to-order-es [ordered-kvs]
-       (let [parts (partition-by vector? ordered-kvs)]
-         (-> (mapcat (fn [[e :as col]]
-                         (if (vector? e)
-                           col
-                           (->> col (partition 2) (map vec))))
-                     parts)
-             vec)))
+(defn- quote-ks-in-order-partition [kvs]
+       (->>
+         kvs
+         (partition-all 2)
+         (map (fn [[k v]]
+                  (let [quoted-k (quote-symbol k)
+                        v (quote-symbol v)]
+                    (if (instance? clojure.lang.Named k) [quoted-k (name k) v] [quoted-k v]))))))
 
-(defmacro def-ordered-enum [name & ordered-kvs]
+(defn ordered-kvs-to-order-es [ordered-kvs]
+  (let [parts (partition-by vector? ordered-kvs)]
+    (-> (mapcat (fn [[e :as col]]
+                    (if (vector? e)
+                      (map #(->> % quote-ks-in-order-partition (apply concat) vec) col)
+                      (quote-ks-in-order-partition col)))
+                parts)
+        vec)))
+
+(defmacro def-ordered-enum
+  "
+   Defines an enum with ordering.
+  "
+  [name & ordered-kvs]
   (let [kvs (flatten ordered-kvs)
         ]
     `(do
        (defenum ~name ~@kvs)
        (def ~name (->> ~(ordered-kvs-to-order-es ordered-kvs) make-order (merge ~name))))))
 
-(defmacro defenum-for-keys 
-  ([name keys]
-   `(defenum-for-keys ~name name ~keys))
-  ([name str-fn keys]
-   `(let [kvs# (mapcatv list ~keys (map ~str-fn ~keys))]
-      (eval (enum-body '~name kvs#)))))
+(defmacro defenum-for-names
+  "
+   Defines enum for a seq of keys in which each key is an instance of clojure.lang.Named and maps a key to (name key).
+
+   e.g.
+       [ladybird.data.converter-core :refer (in-fn out-fn)]
+       (defenum-for-names E :a \"b\" c)
+       ((in-fn E) \"a\") => :a
+       ((in-fn E) \"b\") => \"b\"
+       ((in-fn E) \"c\") => 'c
+       ((out-fn E) :a) => \"a\"
+       ((out-fn E) \"b\") => \"b\"
+       ((out-fn E) 'c) => \"c\"
+
+
+   Normally, if a key is an instance of clojure.lang.Named, the out-fn of converter will also map (name key) to key's value.
+   e.g.
+       (defenum-for-names E :a \"b\" c)
+       ((out-fn E) \"a\") => \"a\"
+       ((out-fn E) \"c\") => \"c\")
+
+   Of course, {:strict true} meta still takes effect.
+   e.g.
+       (defenum-for-names ^:strict E :a \"b\" c)
+       ((out-fn E) :a) => \"a\"
+       ((out-fn E) \"b\") => \"b\"
+       ((out-fn E) 'c) => \"c\"
+       ((out-fn E) \"a\") => nil
+       ((out-fn E) \"c\") => nil
+  "
+  [ename k & ks]
+  (let [ks (cons k ks)
+        kvs (mapcat list ks (map name ks))]
+    `(defenum ~ename ~@kvs)))
 
 ;; enum utilities
 (defn enum? [x]
@@ -67,6 +150,9 @@
 
 (defn enum-vals [enum]
   (-> enum in-fn keys))
+
+(defn spec-kvs [enum]
+  (::spec-kvs enum))
 
 (defn spec-keys
   "
