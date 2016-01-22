@@ -143,17 +143,71 @@
                        =expands-to=>
                        (ladybird.domain.core/defdomain TypedDomain [:a :b _ _ :c BOOL _ :d BOOL [not-nil is-number] :e BOOL _ :f _ not-nil :g _ not-nil :h _ _] {:type-hints {:c Long}})))
 
+
+(defenum STATUS :active "A" :inactive "I")
+(defdomain Member [:status STATUS])
+(def-enum-predicates Member :status {:active status-active? :inactive status-inactive?})
+
+(defenum ENUM :a 1 :b 2)
+(defdomain DOMAIN [:field ENUM])
+(def-enum-predicates DOMAIN :field)
+
+(defdomain TCore [:state STATUS])
+(def-enum-predicates :state)
+(def-enum-predicates :state {:active st-a? :inactive st-i?})
+
+(defdomain Domain [:e ENUM])
+(def-enum-predicates Domain :e :default-fn-name)
+
+(defenum E a b)
+(defdomain D [:f E])
+(def-enum-predicates D :f)
+
+(defenum ^:strict SE c d)
+(defdomain SD [:f SE])
+(def-enum-predicates SD :f)
 (facts "about def-enum-predicates"
-       (future-fact "If the domain is the capitalized camel case of the last section of the containing namespace name, def-enum-predicates can define predicate functions named by field and enum key if the enum field is provided"
-             (defenum STATUS :active "A" :inactive "I")
-             (defdomain Member [:status STATUS])
-             (def-enum-predicates :status))
-       (fact "can define predicate functions named by caller for an enum field in the specified domain if domain, field and functions name mapping are provided"
-             (defenum STATUS :active "A" :inactive "I")
-             (defdomain Member [:status STATUS])
-             (def-enum-predicates Member :status {:active status-active? :inactive status-inactive?})
+       (fact "If the domain is the capitalized camel case of the last section of the containing namespace name, def-enum-predicates can define predicate functions named by field and enum key if only the enum field is provided"
+             (state-active? nil) => false
+             (state-active? {}) => false
+             (state-active? {:state :active}) => true
+             (state-inactive? {:state :inactive}) => true
+             (state-active? {:state :inactive}) => false)
+       (fact "If only domain and field are provide, will generate default names for predicate functions"
+             (field-a? nil) => false
+             (field-a? {}) => false
+             (field-a? {:field :a}) => true
+             (field-a? {:field "a"}) => true
+             (field-a? {:field :b}) => false
+             (field-b? {:field :b}) => true)
+       (fact "If the domain is the capitalized camel case of the last section of the containing namespace name, can provide field and a map to specify the name of predicate functions generated"
+             (st-a? nil) => false
+             (st-a? {}) => false
+             (st-a? {:state :active}) => true
+             (st-a? {:state "active"}) => true
+             (st-i? {:state "inactive"}) => true
+             (st-a? {:state "inactive"}) => false)
+       (fact "can define predicate functions by providing domain, field and function names mapping"
              (status-active? nil) => false
              (status-active? {}) => false
              (status-active? {:status :active}) => true
              (status-inactive? {:status :inactive}) => true
-             (status-active? {:status :inactive}) => false))
+             (status-active? {:status :inactive}) => false)
+       (fact "the argument of function names mapping can be :default-fn-name, means nameing predicate functions by default, i.e. by joining field and enum key"
+             (e-a? nil) => false
+             (e-a? {}) => false
+             (e-a? {:e :a}) => true
+             (e-a? {:e "a"}) => true
+             (e-a? {:e :b}) => false
+             (e-b? {:e :b}) => true)
+       (fact "a nonstrict example"
+             (f-a? nil) => false
+             (f-a? {}) => false
+             (f-a? {:f 'a}) => true
+             (f-a? {:f "a"}) => true
+             (f-a? {:f :a}) => false)
+       (fact "a strict example"
+             (f-c? nil) => false
+             (f-c? {}) => false
+             (f-c? {:f 'c}) => true
+             (f-c? {:f "c"}) => false))

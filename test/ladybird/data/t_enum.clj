@@ -97,6 +97,13 @@
        (fact "can get the vals of out-fn"
              (defenum E :a 1 b 2)
              (enum-vals E) => (just [1 2] :in-any-order))
+       (fact "can get a seq of [key value] pairs in the enum converter"
+             (defenum E :a 1 b c)
+             (kv-pairs E) => (just [[:a 1] ["a" 1] ['b 'c] ["b" 'c]] :in-any-order)
+
+             (defenum ^:strict E :a 1 b c)
+             (kv-pairs E) => (just [[:a 1] ['b 'c]] :in-any-order)
+             )
        (fact "can get the keys in the original enum spec"
              (defenum E :a 1 b 2)
              (spec-keys E) => '(:a b))

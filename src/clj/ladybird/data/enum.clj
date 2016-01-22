@@ -151,6 +151,13 @@
 (defn enum-vals [enum]
   (-> enum in-fn keys))
 
+(defn kv-pairs
+  "
+   Get a seq of [key value] pairs used by the enum converter.
+  "
+  [enum]
+  (map identity (out-fn enum)))
+
 (defn spec-kvs [enum]
   (::spec-kvs enum))
 

@@ -2,6 +2,7 @@
     (:require [ladybird.util.string :as str]
               [ladybird.data.core :as dc]
               [ladybird.data.cond :as c]
+              [ladybird.data.converter-core :as cc]
               [ladybird.data.validate-core :as v]
               [ladybird.data.enum :as en]
               [ladybird.util.symbol :as sym]
@@ -378,6 +379,15 @@
          ]
      `(defdomain ~domain-name ~domain-fields-def ~meta-data))))
 
+(defn- def-enum-pred [enum field fn-name k]
+       (let [v (cc/tr-out enum k)
+             kvpairs (en/kv-pairs enum)
+             v-ks-m (group-by second kvpairs)
+             ks (->> v v-ks-m (map first) set)
+             ]
+         `(defn ~fn-name [o#] (if o# (-> (o# ~field) ('~ks) (if true false)) false)))
+       )
+
 (defmacro def-enum-predicates
   "Define predicates for a domian field, the converter of which is an enum.
    Example:
@@ -394,7 +404,7 @@
 
        the same as above:
        (def-enum-predicates Member :status)
-       (def-enum-predicates :status nil)
+       (def-enum-predicates :status :default-fn-name)
        (def-enum-predicates Member :status {:active status-active? :inactive status-inactive?})
 
        or you can specify some of the predicate names:
@@ -404,11 +414,11 @@
        (def-enum-predicates :status {:active sa?}) => the same as above
    "
   ([field]
-   `(def-enum-predicates ~field nil))
+   `(def-enum-predicates ~field :default-fn-name))
   ([domain-or-field field-or-pred-name-m]
    (let [[domain field pred-name-m] (if (keyword? domain-or-field)
                                       [nil domain-or-field field-or-pred-name-m]
-                                      [domain-or-field field-or-pred-name-m nil])
+                                      [domain-or-field field-or-pred-name-m :default-fn-name])
          domain (if domain
                   domain
                   (let [n (-> (ns-name *ns*) name)
@@ -422,8 +432,7 @@
          ks (en/spec-keys enum)
          pred-name (fn [k]
                        (let [kn (if (instance? clojure.lang.Named k) (name k) (str k))
-                             pn (if pred-name-m (pred-name-m k) nil)]
+                             pn (when-not (= :default-fn-name pred-name-m) (pred-name-m k))]
                          (if pn pn (sym/str-symbol field "-" kn "?"))))
-         def-pred (fn [k] `(defn ~(pred-name k) [o#] (if o# (= ~k (o# ~field)) false)))
          ]
-     `(do ~@(map def-pred ks)))))
+     `(do ~@(map #(def-enum-pred enum field (pred-name %) %) ks)))))

@@ -7,6 +7,10 @@
 
 (defn out-fn [c] (convert-fn c :out))
 
+(defn tr-in [c v] ((in-fn c) v))
+
+(defn tr-out [c v] ((out-fn c) v))
+
 (defn value-converter [keyvals]
   {:pre [(not (empty? keyvals)) (even? (count keyvals)) (every? #(not (nil? %)) keyvals)]}
   {:in (apply hash-map (reverse keyvals)) :out (apply hash-map keyvals)})
