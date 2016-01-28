@@ -22,7 +22,7 @@
 (defn- field-def-for-field-alias [table field alias]
        (if (c/raw? field)
          [field alias]
-         [(alias-field table field) alias]))
+         [(alias-field table (domain-field-to-db-field field)) alias]))
 
 (defn- aliased-field? [field]
        (re-find #"\." (name field)))
