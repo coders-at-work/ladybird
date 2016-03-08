@@ -2,6 +2,7 @@
     (:require [korma.db :as kdb]
               [ladybird.db.core :as c]
               [ladybird.misc.exception :as e]
+              [clojure.edn :as edn]
      ))
 
 ;; load db
@@ -23,6 +24,9 @@
 
 (defn load-db-file
   "
+  Paras:
+    fpath  --  a file path string or any object which can be coerced to a java.io.Reader object by clojure.java.io/reader.
+
   Ex.
       =========== file default-main-db.def ===========  
       {:dbms-type :mysql
@@ -45,7 +49,7 @@
       }
   "
   [fpath]
-  (let [db-defs-m (load-file fpath)
+  (let [db-defs-m (-> fpath slurp edn/read-string)
         db-defs-m (if (:dbms-type db-defs-m) {:main db-defs-m} db-defs-m)
         ]
     (doseq [[def-name db-def] db-defs-m]
