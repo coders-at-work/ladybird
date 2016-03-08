@@ -109,4 +109,14 @@
              (spec-keys E) => '(:a b))
        (fact "can get the values in the original enum spec"
              (defenum E :a 1 b 2)
-             (spec-vals E) => '(1 2)))
+             (spec-vals E) => '(1 2))
+       (fact "can convert a key to its value"
+             (defenum E :a 1 b 2)
+             (value-of E :a) => 1
+             (value-of E "a") => 1
+             (value-of E 'b) => 2
+             (value-of E "b") => 2)
+       (fact "can convert a value to its key"
+             (defenum E :a 1 b 2)
+             (key-of E 1) => :a
+             (key-of E 2) => 'b))

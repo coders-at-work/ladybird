@@ -174,3 +174,17 @@
   "
   [enum]
   (->> enum ::spec-kvs (drop 1) (take-nth 2)))
+
+(defn value-of
+  "
+   Convert the key to its value.
+  "
+  [enum k]
+  (tr-out enum k))
+
+(defn key-of
+  "
+   Convert the value to its key.
+  "
+  [enum v]
+  (tr-in enum v))
