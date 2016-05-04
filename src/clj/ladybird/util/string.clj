@@ -1,7 +1,10 @@
 (ns ladybird.util.string
-    (:require [clojure.string :as string])
+    (:require [clojure.string :as string]
+              [clojure.java.io :as io])
     (:import [java.util Date]
-             [java.text SimpleDateFormat]))
+             [java.text SimpleDateFormat]
+             [java.nio.charset StandardCharsets]
+             ))
 
 ;; case related
 (defn hyphen-to-underscore [s]
@@ -35,6 +38,15 @@
   "
   [x]
   (str (ns-name *ns*) "/" (name x)))
+
+(defn to-input-stream
+  "
+   Converts a string to a utf-8 encoded byte array input stream.
+  "
+  [^String s]
+  (-> s
+      (.getBytes StandardCharsets/UTF_8)
+      io/input-stream))
 
 ;; convert between Date and String
 (def datetime-format-str "yyyy-MM-dd HH:mm:ss")
