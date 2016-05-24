@@ -1,0 +1,26 @@
+;; single datasource
+;; it will be named as :main
+;;;; nonjndi datasource
+#_{:dbms-type :mysql   ; see also ladybird.db.load/db-helpers for built-in dbms-type
+ :host "localhost"
+ :port 3306
+ :db "db-name"
+ :user "user-name"
+ :password "password"
+}
+
+;;;; jndi datasource
+#_{:dbms-type :jndi     ; this type is for jndi datasource which doesn't connect to a mysql db
+ :name "your-jndi-datasource-name" ; for tomcat, it will be "java:comp/env/db-resource-name-in-tomcat-context-xml"
+ :subprotocol "sqlserver"   ; for sqlserver, you should specify its subprotocol explicitly
+ }
+#_{:dbms-type :jndi-mysql   ; this type is for jndi datasource which connects to a mysql db
+ :name "datasource-name"
+}
+
+
+;; multiple datasources
+;; you can define more than one datasources and name them
+#_{:main {:dbms-type :mysql ......}
+ :secondary {:dbms-type :jndi ......}
+}
