@@ -43,6 +43,9 @@
 (defn order=? [order-def v1 v2]
   (zero? (compare-order order-def v1 v2)))
 
+(defn order<>? [order-def v1 v2]
+  (not (order=? order-def v1 v2)))
+
 (defn order-max? [order-def v]
   (-> ((::max order-def) v) nil? not))
 
