@@ -1,6 +1,7 @@
 (ns ladybird.data.t-enum
     (:require [midje.sweet :refer :all]
               [ladybird.data.enum :refer :all]
+              [ladybird.data.order :refer :all]
               [ladybird.data.converter-core :refer (in-fn out-fn)]
      ))
 
@@ -77,11 +78,38 @@
              (def-ordered-enum ^:strict E :a 1 :b 2)
              ((out-fn E) :b) => 2
              ((out-fn E) "b") => nil)
-       (fact "is also an order"
+       (fact "is also an order, key and its value have same order"
              (def-ordered-enum E :a 1 :b 2 c d)
              E => (contains {:ladybird.data.order/es [[:a "a" 1] [:b "b" 2] ['c "c" 'd]] :ladybird.data.order/min #{:a "a" 1} :ladybird.data.order/max #{'c "c" 'd}})
+             (order>? E :b :a) => true
+             (order>? E 'c 2) => true
+             (order>? E "c" "b") => true
+             (order>? E :a :b) => false
+             (order>? E :b 'd) => false
+
              (def-ordered-enum E :a 1 [:b 2 c d] 4 5)
-             E => (contains {:ladybird.data.order/es [[:a "a" 1] [:b "b" 2 'c "c" 'd] [4 5]] :ladybird.data.order/min #{:a "a" 1} :ladybird.data.order/max #{4 5} :ladybird.data.enum/spec-kvs [:a 1 :b 2 'c 'd 4 5]})))
+             E => (contains {:ladybird.data.order/es [[:a "a" 1] [:b "b" 2 'c "c" 'd] [4 5]] :ladybird.data.order/min #{:a "a" 1} :ladybird.data.order/max #{4 5} :ladybird.data.enum/spec-kvs [:a 1 :b 2 'c 'd 4 5]})
+             (order>? E :b :a) => true
+             (order>? E 'd 1) => true
+             (order=? E "c" :b) => true
+             (order=? E 4 5) => true
+             (order>? E 5 'c) => true)
+       (fact "strict mode will affect ordering"
+             (def-ordered-enum ^:strict E :a 1 :b 2 c d)
+             E => (contains {:ladybird.data.order/es [[:a 1] [:b 2] ['c 'd]] :ladybird.data.order/min #{:a 1} :ladybird.data.order/max #{'c 'd}})
+             (order>? E :b :a) => true
+             (order>? E 'c 2) => true
+             (order>? E "c" "b") => false ; in strict mode, named keys will not be transform to strings
+             (order>? E :a :b) => false
+             (order>? E :b 'd) => false
+
+             (def-ordered-enum ^:strict E :a 1 [:b 2 c d] 4 5)
+             E => (contains {:ladybird.data.order/es [[:a 1] [:b 2 'c 'd] [4 5]] :ladybird.data.order/min #{:a 1} :ladybird.data.order/max #{4 5} :ladybird.data.enum/spec-kvs [:a 1 :b 2 'c 'd 4 5]})
+             (order>? E :b :a) => true
+             (order>? E 'd 1) => true
+             (order=? E "c" :b) => false ; in strict mode, named keys will not be transform to strings
+             (order=? E 4 5) => true
+             (order>? E 5 'c) => true))
 
 (facts "about enum utilities"
        (fact "can tell whether a data structure is an enum"

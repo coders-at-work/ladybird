@@ -77,34 +77,53 @@
   (let [kvs (apply vector k1 v1 kvs)]
     (enum-body name kvs)))
 
-(defn- quote-ks-in-order-partition [kvs]
+(defn- quote-ks-in-order-partition [is-strict kvs]
        (->>
          kvs
          (partition-all 2)
          (map (fn [[k v]]
                   (let [quoted-k (quote-symbol k)
                         v (quote-symbol v)]
-                    (if (instance? clojure.lang.Named k) [quoted-k (name k) v] [quoted-k v]))))))
+                    (if (and (instance? clojure.lang.Named k)
+                             (not is-strict))
+                      [quoted-k (name k) v]
+                      [quoted-k v]))))))
 
-(defn ordered-kvs-to-order-es [ordered-kvs]
+(defn- ordered-kvs-to-order-es [is-strict ordered-kvs]
   (let [parts (partition-by vector? ordered-kvs)]
     (-> (mapcat (fn [[e :as col]]
                     (if (vector? e)
-                      (map #(->> % quote-ks-in-order-partition (apply concat) vec) col)
-                      (quote-ks-in-order-partition col)))
+                      (map #(->> % (quote-ks-in-order-partition is-strict) (apply concat) vec) col)
+                      (quote-ks-in-order-partition is-strict col)))
                 parts)
         vec)))
 
 (defmacro def-ordered-enum
   "
    Defines an enum with ordering.
+
+   e.g.
+       (def-ordered-enum E :a 1 [:b 2 c d] 4 5)
+       (order>? E :b :a) => true
+       (order>? E 'd 1) => true
+       (order=? E \"c\" :b) => true
+       (order=? E 4 5) => true
+       (order>? E 5 'c) => true
+
+       (def-ordered-enum ^:strict E :a 1 [:b 2 c d] 4 5)
+       (order>? E :b :a) => true
+       (order>? E 'd 1) => true
+       (order=? E \"c\" :b) => false     ; in strict mode, named keys will not be transform to strings
+       (order=? E 4 5) => true
+       (order>? E 5 'c) => true
   "
   [name & ordered-kvs]
   (let [kvs (flatten ordered-kvs)
+        is-strict (-> name meta :strict)
         ]
     `(do
        (defenum ~name ~@kvs)
-       (def ~name (->> ~(ordered-kvs-to-order-es ordered-kvs) make-order (merge ~name))))))
+       (def ~name (->> ~(ordered-kvs-to-order-es is-strict ordered-kvs) make-order (merge ~name))))))
 
 (defmacro defenum-for-names
   "
