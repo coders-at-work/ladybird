@@ -26,6 +26,9 @@
 (defn get-stack-trace-str [e]
   (apply str (.getMessage e) "\n" (map #(str % "\n") (.getStackTrace e))))
 
+(defn exception-str [e]
+  (str (type e) "\n" (get-stack-trace-str e)))
+
 (defn get-system-property 
   "Get a system property."
   ([s]
