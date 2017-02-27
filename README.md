@@ -4,7 +4,7 @@ A Clojure library designed to ... well, that part is up to you.
 
 ## Usage
 
-FIXME
+![](https://clojars.org/coders-at-work/ladybird/latest-version.svg)
 
 ## License
 
