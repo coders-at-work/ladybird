@@ -24,7 +24,7 @@
                    ~@~'body)))))
 
 (defn get-stack-trace-str [e]
-  (apply str (.getMessage e) "\n" (map #(str % "\n") (.getStackTrace e))))
+  (apply str e "\n" (map #(str % "\n") (.getStackTrace e))))
 
 (defn exception-str [e]
   (str (type e) "\n" (get-stack-trace-str e)))
