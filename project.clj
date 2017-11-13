@@ -1,4 +1,4 @@
-(defproject coders-at-work/ladybird "0.5.3"
+(defproject coders-at-work/ladybird "0.5.4-SNAPSHOT"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
