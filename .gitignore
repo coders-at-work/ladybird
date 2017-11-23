@@ -16,3 +16,4 @@ Icon?
 .lein-repl-history
 filenametags
 /.nrepl-port
+/tmp
