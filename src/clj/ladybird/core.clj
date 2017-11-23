@@ -1,4 +1,10 @@
-(ns ladybird.core)
+(ns ladybird.core
+  (require [ladybird.db.load :as load])
+  (require [korma.core :refer (exec-raw)])
+  (require [ladybird.db.transaction :as tx])
+  (require [ladybird.db.core :as db])
+  (:gen-class)
+  )
 
 ; chaining generation
 (defn chain-proc
@@ -18,7 +24,7 @@
   Expand to process meta-m(a map) through chaining functions in gen-fns, then evaluate the result. Can be used to generate code.
   Params:
      meta-m   --  a map of meta data
-     gen-fns  --  functions to generate some code 
+     gen-fns  --  functions to generate some code
 
   Ex:
      (chain-gen {:a 1} ) => {:a 1}
@@ -26,3 +32,11 @@
   "
   [meta-m & gen-fns]
   `(eval (chain-proc ~meta-m ~@gen-fns)))
+
+(defn -main [db-file & args]
+  (println "Hello world!")
+  (load/load-db-file db-file)
+  (let [results (tx/do-tx (db/get-db-conn :main) (exec-raw "select * from dbcinfo" :results))]
+    (println :results results)
+    )
+  )
