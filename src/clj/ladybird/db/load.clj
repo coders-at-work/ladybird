@@ -3,6 +3,7 @@
               [ladybird.db.core :as c]
               [ladybird.misc.exception :as e]
               [clojure.edn :as edn]
+              [ladybird.db.patch.teradata :as teradata]
      ))
 
 ;; load db
@@ -10,6 +11,7 @@
                  :oracle kdb/oracle
                  :mysql kdb/mysql
                  :msaccess kdb/msaccess
+                 :teradata teradata/teradata
                  })
 
 (defn parse-db-def [{:keys [dbms-type password decrypter] :as db-def}]

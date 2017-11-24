@@ -18,7 +18,7 @@
   Expand to process meta-m(a map) through chaining functions in gen-fns, then evaluate the result. Can be used to generate code.
   Params:
      meta-m   --  a map of meta data
-     gen-fns  --  functions to generate some code 
+     gen-fns  --  functions to generate some code
 
   Ex:
      (chain-gen {:a 1} ) => {:a 1}
@@ -26,3 +26,4 @@
   "
   [meta-m & gen-fns]
   `(eval (chain-proc ~meta-m ~@gen-fns)))
+
