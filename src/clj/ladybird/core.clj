@@ -1,10 +1,4 @@
-(ns ladybird.core
-  (require [ladybird.db.load :as load])
-  (require [korma.core :refer (exec-raw)])
-  (require [ladybird.db.transaction :as tx])
-  (require [ladybird.db.core :as db])
-  (:gen-class)
-  )
+(ns ladybird.core)
 
 ; chaining generation
 (defn chain-proc
@@ -33,10 +27,3 @@
   [meta-m & gen-fns]
   `(eval (chain-proc ~meta-m ~@gen-fns)))
 
-(defn -main [db-file & args]
-  (println "Hello world!")
-  (load/load-db-file db-file)
-  (let [results (tx/do-tx (db/get-db-conn :main) (exec-raw "select * from dbcinfo" :results))]
-    (println :results results)
-    )
-  )

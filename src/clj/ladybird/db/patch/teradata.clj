@@ -1,19 +1,23 @@
 (ns ladybird.db.patch.teradata)
 
 (defn teradata
-  "Create a database specification for a teradata database. Opts should include keys
-  for :db, :user, and :password. You can also optionally set host.
+  "Create a database specification for a teradata database.
+  Opts should include keys for :host, :user, and :password.
+  You can also optionally set
+  :db, :port
   Please refer to http://developer.teradata.com/doc/connectivity/jdbc/reference/current/frameset.html
   "
-  [{:keys [host user password make-pool?]
+  [{:keys [host user password db port make-pool?]
     :or {host "localhost", user "", password "", make-pool? true}
     :as opts}]
-  ; lein localrepo install path-to/terajdbc4.jar local.repo/terajdbc 16.00.00.33
-  ; lein localrepo install path-to/tdgssconfig.jar local.repo/teratdgss 16.00.00.33
-  (merge {:classname "com.teradata.jdbc.TeraDriver" ; must be in classpath
-          :subprotocol "teradata"
-          :subname (str "//" host)
-          :make-pool? make-pool?}
-         (dissoc opts :host))
+  (let [subname (cond-> (str "//" host "/USER=" user ",PASSWORD=" password)
+                  db (str ",DATABASE=" db)
+                  port (str ",DBS_PORT=" port))]
+    (merge {:classname "com.teradata.jdbc.TeraDriver" ; must be in classpath
+            :subprotocol "teradata"
+            :subname subname
+            :make-pool? make-pool?}
+           (dissoc opts :host :user :password :db :port))
+    )
   )
 
