@@ -123,12 +123,12 @@
   [svc-name doc-string prototype & options-body]
   `(s-svc ~default-gen-fns ~svc-name ~doc-string ~prototype ~@options-body))
 
-(defmacro SVC
+(defmacro t-svc
   "
-   A more def-like service defining macro. Options must be prior to prototype if it is presented.
+   A more def-like service defining macro. Options must be prior to prototype if it is presented. Can be used to define your own version of service generating too.
 
    e.g.
-       (SVC [encapsule-body transform check-and-bind catch-forms gen-defn]
+       (t-svc [encapsule-body transform check-and-bind catch-forms gen-defn]
             a \"a\" {:check-and-bind [a [not-nil is-boolean]
                                       b not-nil
                                       c [:to inc]
