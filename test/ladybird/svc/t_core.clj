@@ -59,18 +59,18 @@
        (fact "a comprehensive example"
              (c false 2 3 4) => "[false 2 4 3]"))
 
-(facts "about SVC"
+(facts "about t-svc"
        (fact "options map is prior to prototype"
-             (SVC [encapsule-body transform gen-defn] a "a" {:to #(str %)} [])
+             (t-svc [encapsule-body transform gen-defn] a "a" {:to #(str %)} [])
              (a) => "")
        (fact "options map can be ignored"
-             (SVC [encapsule-body transform gen-defn] a "a" [])
+             (t-svc [encapsule-body transform gen-defn] a "a" [])
              (a) => nil)
        (fact "unlike s-svc, options map will not be ignored implicitly"
-             (SVC [encapsule-body transform gen-defn] a "a" [] {})
+             (t-svc [encapsule-body transform gen-defn] a "a" [] {})
              (a) => {})
        (fact "a comprehensive example"
-             (let [f (SVC
+             (let [f (t-svc
                        [encapsule-body transform check-and-bind (fn [{:keys [prototype body-form]}] `(fn ~prototype ~body-form))]
                        a "a" {:check-and-bind [a [v/not-nil v/is-boolean]
                                                b v/not-nil
