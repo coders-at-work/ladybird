@@ -1,7 +1,12 @@
 (ns ladybird.data.db-converter
-    (:use ladybird.data.converter-core
-          [ladybird.util.string :only (datetime-str-to-date)])
-    (:import (java.util Date Calendar)))
+    (:require [ladybird.data.converter-core :refer :all]
+              [ladybird.util.string :refer (datetime-str-to-date)]
+              [clojure.edn :as edn]
+              )
+    (:import (java.util Date Calendar)
+             java.nio.ByteBuffer
+             java.sql.Timestamp
+             ))
 
 (defn- truncate-time [^java.util.Date d]
        (let [c (Calendar/getInstance)]
@@ -25,4 +30,20 @@
 ;; TODO should be STRING-OUT-INT-IN
 (def INT->STRING (when-converter integer? str))
 
-;; datetime, encryption, simplfied/traditional chinese
+(def JAVA-TIME-INSTANT
+  {:in #(some-> % (.toInstant))
+   :out #(some-> % (Timestamp/from))
+   }
+  )
+
+(def EDN
+  {:in edn/read-string
+   :out pr-str
+   }
+  )
+
+(def MSSQL-ROWVERSION
+     {:in #(-> % ByteBuffer/wrap .getLong)
+     :out identity})
+
+;; encryption
