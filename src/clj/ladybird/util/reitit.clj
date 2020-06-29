@@ -1,4 +1,4 @@
-(ns ladybird.util.reitit-utils
+(ns ladybird.util.reitit
     (:require [reitit.swagger :as rswagger]
               [reitit.core :as r]
               [muuntaja.core :as m]

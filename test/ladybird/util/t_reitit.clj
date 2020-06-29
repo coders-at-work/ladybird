@@ -1,6 +1,6 @@
-(ns ladybird.util.t-reitit-utils
+(ns ladybird.util.t-reitit
     (:require [midje.sweet :refer :all]
-              [ladybird.util.reitit-utils :refer :all :as rutil]
+              [ladybird.util.reitit :refer :all :as rutil]
               [schema.core :as s]
               )
     )
@@ -9,7 +9,7 @@
        (fact "The simplest endpoint only includes method, path and a default qualified name"
              (def-endpoint E :post "path")
              E => (just ["path"
-                         (just {:name :ladybird.util.t-reitit-utils/E
+                         (just {:name :ladybird.util.t-reitit/E
                                 :post (just {:handler fn?})})
                          ])
              )
@@ -19,7 +19,7 @@
                :description "description"
                )
              E => (just ["path"
-                         (just {:name :ladybird.util.t-reitit-utils/E
+                         (just {:name :ladybird.util.t-reitit/E
                                 :post (just {:handler fn?
                                              :summary "summary"
                                              :description "description"
@@ -31,7 +31,7 @@
                :return ..schema..
                )
              E => (just ["path"
-                         (just {:name :ladybird.util.t-reitit-utils/E
+                         (just {:name :ladybird.util.t-reitit/E
                                 :post (just {:handler fn?
                                              :responses {200 {:body ..schema..}}
                                              })
@@ -44,7 +44,7 @@
                               ]
                )
              E => (just ["path"
-                         (just {:name :ladybird.util.t-reitit-utils/E
+                         (just {:name :ladybird.util.t-reitit/E
                                 :post (just {:handler fn?
                                              :parameters {:query {:x s/Str
                                                                   (s/optional-key :y) s/Int
@@ -65,7 +65,7 @@
                              ]
                )
              E => (just ["path"
-                         (just {:name :ladybird.util.t-reitit-utils/E
+                         (just {:name :ladybird.util.t-reitit/E
                                 :post (just {:handler fn?
                                              :parameters {:path {:x s/Str
                                                                  (s/optional-key :y) s/Int
@@ -86,7 +86,7 @@
                              ]
                )
              E => (just ["path"
-                         (just {:name :ladybird.util.t-reitit-utils/E
+                         (just {:name :ladybird.util.t-reitit/E
                                 :post (just {:handler fn?
                                              :parameters {:form {:x s/Str
                                                                  (s/optional-key :y) s/Int
@@ -107,7 +107,7 @@
                                ]
                )
              E => (just ["path"
-                         (just {:name :ladybird.util.t-reitit-utils/E
+                         (just {:name :ladybird.util.t-reitit/E
                                 :post (just {:handler fn?
                                              :parameters {:header {:x s/Str
                                                                    (s/optional-key :y) s/Int
@@ -128,7 +128,7 @@
                                   ]
                )
              E => (just ["path"
-                         (just {:name :ladybird.util.t-reitit-utils/E
+                         (just {:name :ladybird.util.t-reitit/E
                                 :post (just {:handler fn?
                                              :parameters {:multipart {:x ..multipart-spec..
                                                                       (s/optional-key :y) ..multipart-spec..
@@ -149,7 +149,7 @@
                                     ]
                       )
                     E => (just ["path"
-                                (just {:name :ladybird.util.t-reitit-utils/E
+                                (just {:name :ladybird.util.t-reitit/E
                                        :post (just {:handler fn?
                                                     :parameters {:body {:a s/Int
                                                                         :b s/Int
@@ -184,7 +184,7 @@
        (facts "Can wrap the rest of arguments as the body of handler"
               (fact "Can generate handler if there is no rest argument"
                     (def-endpoint E :post "path"
-                      ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+                      ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                          {}
                                                                          (clojure.core/fn [{{=query-params= :query =path-params= :path
                                                                                              =form-params= :form =header-params= :header
@@ -200,7 +200,7 @@
                       1
                       2
                       3
-                      ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+                      ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                          {}
                                                                          (clojure.core/fn [{{=query-params= :query =path-params= :path
                                                                                              =form-params= :form =header-params= :header
@@ -219,7 +219,7 @@
                                      ^:optional b s/Int "b"]
                       1
                       (+ a b)
-                      ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+                      ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                          {:handler-parameters {:query {:a s/Int :b s/Int}}
                                                                           :param-desc {:a "a" :b "b"}
                                                                           :parameters {:query {:a s/Int (schema.core/optional-key :b) s/Int}}}
@@ -237,7 +237,7 @@
                                      ^:optional b s/Int "b"]
                       1
                       (+ a b)
-                      ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+                      ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                          {:handler-parameters {:path {:a s/Int :b s/Int}}
                                                                           :param-desc {:a "a" :b "b"}
                                                                           :parameters {:path {:a s/Int (schema.core/optional-key :b) s/Int}}}
@@ -255,7 +255,7 @@
                                     ^:optional b s/Int "b"]
                       1
                       (+ a b)
-                      ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+                      ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                          {:handler-parameters {:form {:a s/Int :b s/Int}}
                                                                           :param-desc {:a "a" :b "b"}
                                                                           :parameters {:form {:a s/Int (schema.core/optional-key :b) s/Int}}}
@@ -273,7 +273,7 @@
                                      ^:optional b s/Int "b"]
                       1
                       (+ a b)
-                      ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+                      ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                          {:handler-parameters {:header {:a s/Int :b s/Int}}
                                                                           :param-desc {:a "a" :b "b"}
                                                                           :parameters {:header {:a s/Int (schema.core/optional-key :b) s/Int}}}
@@ -291,7 +291,7 @@
                                          ^:optional b ..multipart-spec.. "b"]
                       1
                       (do-something a b)
-                      ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+                      ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                          {:handler-parameters {:multipart {:a ..multipart-spec.. :b ..multipart-spec..}}
                                                                           :param-desc {:a "a" :b "b"}
                                                                           :parameters {:multipart {:a ..multipart-spec..
@@ -309,7 +309,7 @@
                       :body-params [x {:a s/Int :b s/Int} "x"
                                     ]
                       [(:a x) (:b x)]
-                      ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+                      ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                          {:handler-parameters {:body {:x {:a s/Int :b s/Int}}}
                                                                           :parameters {:body {:a s/Int :b s/Int}}}
                                                                          (clojure.core/fn [{{=query-params= :query =path-params= :path
@@ -334,7 +334,7 @@
                       (let [{:keys [x y z i j k]} =all-params=]
                         [x y z i j k
                          =query-params= =form-params= =path-params= =header-params= =body-params= =multipart-params=])
-                      ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E
+                      ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E
                                                                          :post "path"
                                                                          {:handler-parameters {:body {:x {:a s/Int :b s/Int}}
                                                                                                :query {:y s/Int}
@@ -369,7 +369,7 @@
               (fact "Handler body can be the predefined all params symbol"
                     (def-endpoint E :post "path"
                       =all-params=
-                      ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+                      ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                          {}
                                                                          (clojure.core/fn [{{=body-params= :body
                                                                                              =query-params= :query
@@ -385,7 +385,7 @@
               (fact "Handler body can be the predefined query params symbol"
                     (def-endpoint E :post "path"
                       =query-params=
-                      ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+                      ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                          {}
                                                                          (clojure.core/fn [{{=body-params= :body
                                                                                              =query-params= :query
@@ -401,7 +401,7 @@
               (fact "Handler body can be the predefined path params symbol"
                     (def-endpoint E :post "path"
                       =path-params=
-                      ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+                      ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                          {}
                                                                          (clojure.core/fn [{{=body-params= :body
                                                                                              =query-params= :query
@@ -417,7 +417,7 @@
               (fact "Handler body can be the predefined form params symbol"
                     (def-endpoint E :post "path"
                       =form-params=
-                      ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+                      ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                          {}
                                                                          (clojure.core/fn [{{=body-params= :body
                                                                                              =query-params= :query
@@ -433,7 +433,7 @@
               (fact "Handler body can be the predefined header params symbol"
                     (def-endpoint E :post "path"
                       =header-params=
-                      ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+                      ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                          {}
                                                                          (clojure.core/fn [{{=body-params= :body
                                                                                              =query-params= :query
@@ -449,7 +449,7 @@
               (fact "Handler body can be the predefined body params symbol"
                     (def-endpoint E :post "path"
                       =body-params=
-                      ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+                      ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                          {}
                                                                          (clojure.core/fn [{{=body-params= :body
                                                                                              =query-params= :query
@@ -465,7 +465,7 @@
               (fact "Handler body can be the predefined multipart params symbol"
                     (def-endpoint E :post "path"
                       =multipart-params=
-                      ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+                      ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                          {}
                                                                          (clojure.core/fn [{{=body-params= :body
                                                                                              =query-params= :query
@@ -484,7 +484,7 @@
              (def-endpoint E :post "path"
                :query-params [x s/Int "x"]
                x
-               ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+               ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                   {:param-desc {:x "x"}
                                                                    :parameters {:query {:x s/Int}}
                                                                    :handler-parameters {:query {:x s/Int}}}
@@ -502,7 +502,7 @@
        (fact "A single unknown symbol will be treated as the handler itself instead of the handler body"
              (def-endpoint E :post "path"
                x
-               ) =expands-to=> (def E (ladybird.util.reitit-utils/endpoint :ladybird.util.t-reitit-utils/E :post "path"
+               ) =expands-to=> (def E (ladybird.util.reitit/endpoint :ladybird.util.t-reitit/E :post "path"
                                                                   {}
                                                                   x
                                                                   nil))
@@ -552,7 +552,7 @@
              (def-endpoint-by-template E T
                [l]
                ) =expands-to=> (def E ["path"
-                                       {:name :ladybird.util.t-reitit-utils/E
+                                       {:name :ladybird.util.t-reitit/E
                                         :post {:parameters {:body {:x ..schema-x.. :y ..schema-y..}}
                                                :handler-parameters {:body {:l {:x ..schema-x.. :y ..schema-y..}}}
                                                :handler (clojure.core/fn [{{=query-params= :query =path-params= :path
