@@ -17,7 +17,7 @@
   "Returns real fields used by optimistic locking, which is specified by meta"
   [{:keys [fields optimistic-locking-fields] :as meta}]
   (cond (some #{:*} optimistic-locking-fields) fields
-        (seq optimistic-locking-fields) optimistic-locking-fields
+        (some? optimistic-locking-fields) optimistic-locking-fields
         (some #{:version} fields) [:version]
         (some #{:last-update} fields) [:last-update]
         :default optimistic-locking-fields)
