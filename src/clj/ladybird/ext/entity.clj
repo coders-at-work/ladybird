@@ -52,7 +52,7 @@
   (let [ignore-fields (set db-maintain-fields)
         ignore-fields (apply conj ignore-fields (keys add-fixed))
         init-params (->> (filter #(not (ignore-fields %)) fields)
-                         (mapv symbol)
+                         (mapv #(-> (name %) symbol))
                          )
         function-name (str "create-" (-> (name entity-sym) lstr/clj-case))
         function-body (->> (map #(vector (keyword %) %) init-params) (into {}))
