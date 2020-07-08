@@ -74,7 +74,7 @@
                     )
         schema (when spec (schema-spec-to-schema spec))
         ]
-    (or schema s/Str)
+    (or schema (s/maybe s/Str))
     )
   )
 
