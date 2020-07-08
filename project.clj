@@ -13,6 +13,7 @@
                                   [midje "1.9.9"]
                                   [midje-notifier "0.3.0"]
                                   [org.clojure/clojure "1.9.0"]
+                                  [com.microsoft.sqlserver/mssql-jdbc "8.2.2.jre8"]
                                   ]}}
   :source-paths ["src/clj"]
   :java-source-paths ["src/java"]
