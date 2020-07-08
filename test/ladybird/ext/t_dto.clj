@@ -13,5 +13,10 @@
              (defdto-from-entity D Dom)
              (s/check D {:id nil}) => nil
              (s/check D {:id "a"}) => nil
+
+             (defentity E [:id])
+             (defdto-from-entity D E)
+             (s/check D {:id nil}) => nil
+             (s/check D {:id "a"}) => nil
              )
        )
