@@ -78,7 +78,7 @@
     )
   )
 
-(defn generate-schema-from-entity
+(defn generate-schema-from-one-entity
   ""
   [{:keys [converters] entity-fields :fields validators :validate :as entity} {:keys [includes excludes fields-spec] :as opts}]
   (let [schema-fields (or includes
@@ -98,11 +98,31 @@
   )
 
 (defmacro defdto-from-entity
-  ""
-  ([dto-name entity]
-   `(defdto-from-entity ~dto-name ~entity nil)
-   )
-  ([dto-name entity opts]
-   `(def ~dto-name (generate-schema-from-entity ~entity ~opts))
+  "
+    Example:
+      (defentity E [:a :b]))
+      (defentity F [:c :d]))
+      (defentity G [:e :f]))
+      (defdto-from-entity D E {:includes [:a]} F {:excludes [:d]} G {:fields-spec {:e s/Int}}))
+      D => {:a (s/maybe String) :c (s/maybe String) :e s/Int :f (s/maybe String)}
+  "
+  ([dto-name & entity-opts]
+   (let [entity-opts (->> (partition-by symbol? entity-opts)
+                          (partition-all 2 2))
+         entity-opts (mapcat (fn [[entities schema-seq]]
+                                 (if (nil? schema-seq)
+                                   (map #(vector % nil) entities)
+                                   (concat
+                                     (map #(vector % nil) (drop-last entities))
+                                     [[(last entities) (first schema-seq)]]
+                                     )))
+                             entity-opts)
+         ]
+     `(def ~dto-name
+        (->>
+          (map (fn [[ent# sch#]] (generate-schema-from-one-entity ent# sch#)) [~@entity-opts])
+          (apply merge)
+          ))
+     )
    )
   )

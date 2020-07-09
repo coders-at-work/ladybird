@@ -19,4 +19,11 @@
              (s/check D {:id nil}) => nil
              (s/check D {:id "a"}) => nil
              )
+       (fact "Can define dto for multi entities"
+             (defdomain Dom [:a])
+             (defentity E [:b :c])
+             (defentity F [:d])
+             (defdto-from-entity D Dom E {:includes [:b]} F)
+             D => {:a (s/maybe s/Str) :b (s/maybe s/Str) :d (s/maybe s/Str)}
+             )
        )
