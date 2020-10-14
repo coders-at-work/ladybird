@@ -61,6 +61,22 @@
     :otherwise struct-schema
     ))
 
+(defn- normalize-keys-renaming-spec [renaming-keys-spec]
+  (let [m (meta renaming-keys-spec)
+        v renaming-keys-spec
+        ]
+    (->>
+      (partition 2 2 v)
+      (map
+        (fn [rename-spec]
+            (let [rename-spec (vec rename-spec)
+                  rename-spec (if m (with-meta rename-spec m) rename-spec)
+                  ]
+              (vector rename-spec :_))))
+      (into {}))
+    )
+  )
+
 (defn- normalize-struct-spec
   [struct-spec]
   (cond
@@ -69,7 +85,7 @@
     (map? struct-spec) (reduce
                          (fn [ret [k v]]
                              (condp = k
-                               RENAME (->> (partition 2 2 v) (map #(vector (vec %) :_)) (into {}) (merge ret))
+                               RENAME (merge ret (normalize-keys-renaming-spec v))
                                REMOVE (reduce (fn [r remove-k] (assoc r (remove-key remove-k) :_)) ret v)
                                ADD (reduce (fn [r k] (assoc r k :_)) ret v)
                                (assoc ret k (normalize-struct-spec v))
@@ -125,14 +141,15 @@
 (declare do-structure-as)
 (defn- process-non-remove-key
   [structure-schema from ret k]
-  (let [is-optional-key (or (s/optional-key? k) (-> (meta k) :optional))
-        [src-k target-k] (src-target-keys k)
-        ]
-    (if (or (contains-key-or-path? from src-k) (not is-optional-key))
-      (assoc ret target-k (do-structure-as (structure-schema k) (get-data-by-key-or-path from src-k)))
-      ret
-      )
-    ))
+  (when from
+    (let [is-optional-key (or (s/optional-key? k) (-> (meta k) :optional))
+          [src-k target-k] (src-target-keys k)
+          ]
+      (if (or (contains-key-or-path? from src-k) (not is-optional-key))
+        (assoc ret target-k (do-structure-as (structure-schema k) (get-data-by-key-or-path from src-k)))
+        ret
+        )
+      )))
 
 (defn- process-remove-keys
   [from removal-keys]
@@ -171,7 +188,7 @@
 (defn structure-as
   "
   Example:
-  1. select required keys - will add required keys if they are absent
+  1. select required keys - will add required keys with value nil if they are absent in a map
       (structure-as {:a s/Str :b s/Str} {:b \"b\" :c 1}) => {:a nil :b \"b\"}
   2. select a list of required keys
       (structure-as {ADD [:a :b]} {:b \"b\" :c 1}) => {:a nil :b \"b\"}
@@ -184,63 +201,75 @@
   6. rename a list of keys
       (structure-as {RENAME [:a :aa :b :bb]} {:b \"b\" :c 1}) => {:aa nil :bb \"b\"}
       (structure-as {:a {RENAME [:b :bb]}} {:a {:b \"b\" :c 1}} ) => {:a {:bb \"b\"}}
-  7. remove keys
+      (structure-as {RENAME ^:optional [:a :aa :b :bb]} {:b 2}) => {:bb 2}
+  7. select or rename keys(required or optional) from nil always returns nil
+      (structure-as {:a :_ :b {:c :_} ADD [:d :e]} nil) => nil
+      (structure-as {(s/optional-key :a) :_} nil) => nil
+      (structure-as {^:optional [:a :a] :_} nil) => nil
+      (structure-as {RENAME [:a :aa :b :bb]} nil) => nil
+      (structure-as {RENAME ^:optional [:a :aa :b :bb]} nil) => nil
+  8. select or rename required keys with value nil returns a map containing the keys with value nil
+      (structure-as {:a :_ :b {:c :_} ADD [:d :e]} {}) => {:a nil :b nil :d nil :e nil}
+      (structure-as {:a :_ :b {:c :_} ADD [:d :e]} {:a nil :b nil :d nil :e nil}) => {:a nil :b nil :d nil :e nil}
+      (structure-as {RENAME [:a :aa :b :bb]} {}) => {:aa nil :bb nil}
+      (structure-as {RENAME [:a :aa :b :bb]} {:a nil :b nil}) => {:aa nil :bb nil}
+  9. remove keys
       (structure-as {(remove-key :b) :_} {:b \"b\" :c 1}) => {:c 1}
       (structure-as {(remove-key :a) :_ (remove-key :b) :_} {:a 0 :b \"b\" :c 1}) => {:c 1}
-  8. if both remove keys and non-remove keys are specified, it means first removes the specified remove keys then apply other non-remove structure template
+  10. if both remove keys and non-remove keys are specified, it means first removes the specified remove keys then apply other non-remove structure template
       (structure-as {(remove-key :b) :_ [:c :cc] :_} {:b \"b\" :c 1 :d 2}) => {:cc 1}
-  9. remove a list of keys
+  11. remove a list of keys
       (structure-as {REMOVE [:a :b]} {:a 0 :b \"b\" :c 1}) => {:c 1}
       (structure-as {REMOVE [:a :b] [:c :cc] :_} {:a 0 :b \"b\" :c 1}) => {:cc 1}
-  10. rename a path
+  12. rename a path
       (structure-as {[[:a :b] :d] s/Str :c s/Int} {:a {:b \"b\"} :c 1}) => {:d \"b\" :c 1}
       (structure-as {^:optional [[:a :b] :d] s/Str :c s/Str} {:b \"b\" :c 1}) => {:c 1}
       (structure-as {:a {:b s/Int, [[:d :e] :dd] s/Int} :c s/Str} {:a {:b 2 :d {:e 3}} :c 1}) => {:a {:b 2 :dd 3} :c 1}
-  11. rename a path by specifying it within a list
+  13. rename a path by specifying it within a list
       (structure-as {RENAME [[:a :b] :d] :c :_} {:a {:b \"b\"} :c 1}) => {:d \"b\" :c 1}
-  12. select and rename a list of keys
+  14. select and rename a list of keys
       (structure-as {ADD [[:a :aa] :b [[:c :d] :dd]]} {:b \"b\" :c {:d 1}}) => {:aa nil :b \"b\" :dd 1}
       (structure-as {:a {ADD [:b]}} {:a {:b \"b\" :c 1}}) => {:a {:b \"b\"}}
-  13. treat vector schema as a sequence
+  15. treat vector schema as a sequence
       (structure-as {:a s/Str :b [s/Str]} {:b [\"b\" \"bb\"] :c 1}) => {:a nil :b '(\"b\" \"bb\")}
-  14. can use an option map/vector to rename keys
+  16. can use an option map/vector to rename keys
       (structure-as {:a s/Str :b s/Str} {:b \"b\" :c 1} {[:a :aa] true}) => {:aa nil :b \"b\"}
       (structure-as {:a s/Str :b s/Str} {:b \"b\" :c 1} {^:optional [:a :aa] true}) => {:b \"b\"}
       (structure-as {:a s/Str :b s/Str} {:b \"b\" :c {:d 1}} {[:a :aa] true [[:c :d] :dd] true}) => {:aa nil :b \"b\" :dd 1}
-  15. can use an option map/vector to rename a list of keys
+  17. can use an option map/vector to rename a list of keys
       (structure-as {:a s/Str :b s/Str} {:b \"b\" :c 1} {RENAME [:a :aa :b :bb]}) => {:aa nil :bb \"b\"}
       (structure-as {:a {:b :_ :c :_}} {:a {:b \"b\" :c 1}} {:a {RENAME [:b :bb]}}) => {:a {:bb \"b\"}}
       (structure-as [{:a s/Str :b s/Str}] [{:b \"b\" :c 1}] [{RENAME [:a :aa :b :bb]}]) => '({:aa nil :bb \"b\"})
-  16. can use an option map/vector to remove a list of keys
+  18. can use an option map/vector to remove a list of keys
       (structure-as {:a s/Str :b s/Str} {:b \"b\" :c 1} {REMOVE [:a]}) => {:b \"b\"}
       (structure-as {:a {:b :_ :c :_}} {:a {:b \"b\" :c 1 :d 2}} {:a {REMOVE [:b]}}) => {:a {:c 1 :d 2}}
       (structure-as [{:a s/Str :b s/Str}] [{:b \"b\" :c 1}] [{REMOVE [:a]}]) => '({:b \"b\"})
-  17. if there is a same top level key in both schema and option map, the option map wins
+  19. if there is a same top level key in both schema and option map, the option map wins
       (structure-as {[:a :AA] s/Str :b s/Str} {:b \"b\" :c 1} {[:a :aa] true}) => {:aa nil :b \"b\"}
       (structure-as {:a {:b :_ [:c :CC] :_}} {:a {:b 1 :c 2}} {:a {[:c :cc] :_}}) => {:a {:cc 2}}
-  18. if both schema and option map/vector want to take a same target key, the option map/vector wins
+  20. if both schema and option map/vector want to take a same target key, the option map/vector wins
       (structure-as {:AA s/Str :b s/Str} {:b \"b\" :c 1} {[:c :AA] true}) => {:AA 1 :b \"b\"}
       (structure-as {[:a :AA] s/Str :b s/Str} {:b \"b\" :c 1} {[:c :AA] true}) => {:AA 1 :b \"b\"}
-  19. option map/vector can contain extra field, all different keys in schema and option map/vector will be included in the result
+  21. option map/vector can contain extra field, all different keys in schema and option map/vector will be included in the result
       (structure-as {:a s/Str :b s/Str} {:b \"b\" :c 1} {[:a :aa] true, [:c :cc] true}) => {:aa nil :b \"b\" :cc 1}
       (structure-as {:a :_} {:a 1 :b 2 :c 3} {:b :_}) => {:a 1 :b 2}
-  20. can use meta data to rename keys
+  22. can use meta data to rename keys
       (structure-as (with-meta {:a s/Str :b s/Str} {ALTER-STRUCT {[:a :aa] true, [:c :cc] true}}) {:b \"b\" :c 1}) => {:aa nil :b \"b\" :cc 1}
       (structure-as (with-meta [{:a ..schema-a.. :b ..schema-b..}] {ALTER-STRUCT [{^:optional [:a :aa] true}]}) [{:a 1 :b 2} {:b 3}]) => '({:aa 1 :b 2} {:b 3})
-  21. can use meta data to rename a list of keys
+  23. can use meta data to rename a list of keys
       (structure-as (with-meta {:a s/Str :b s/Str} {ALTER-STRUCT {RENAME [:a :aa :b :bb]}}) {:b \"b\" :c 1}) => {:aa nil :bb \"b\"}
       (structure-as (with-meta {:a {:b :_ :c :_}} {ALTER-STRUCT {:a {RENAME [:b :bb]}}}) {:a {:b \"b\" :c 1}}) => {:a {:bb \"b\"}}
       (structure-as (with-meta [{:a s/Str :b s/Str}] {ALTER-STRUCT [{RENAME [:a :aa :b :bb]}]}) [{:b \"b\" :c 1}]) => '({:aa nil :bb \"b\"})
-  22. can use meta data to remove a list of keys
+  24. can use meta data to remove a list of keys
       (structure-as (with-meta {:a s/Str :b s/Str} {ALTER-STRUCT {REMOVE [:a]}}) {:b \"b\" :c 1}) => {:b \"b\"}
       (structure-as (with-meta {:a {:b :_ :c :_}} {ALTER-STRUCT {:a {REMOVE [:b]}}}) {:a {:b \"b\" :c 1 :d 2}}) => {:a {:c 1 :d 2}}
       (structure-as (with-meta [{:a s/Str :b s/Str}] {ALTER-STRUCT [{REMOVE [:a]}]}) [{:b \"b\" :c 1}]) => '({:b \"b\"})
-  23. if both meta data and option map/vector are specified, only option map/vector takes effect
+  25. if both meta data and option map/vector are specified, only option map/vector takes effect
       (structure-as (with-meta {:a s/Str :b s/Str} {ALTER-STRUCT {[:a :AA] true, [:c :cc] true}}) {:b \"b\" :c 1} {[:a :aa] true, [:c :cc] true}) => {:aa nil :b \"b\" :cc 1}
       (structure-as (with-meta [{:a ..schema-a.. :b ..schema-b..}] {ALTER-STRUCT [{^:optional [:a :AA] true}]}) [{:a 1 :b 2} {:b 3}] [{^:optional [:a :aa] true}]) => '({:aa 1 :b 2} {:b 3})
-  24. if option map/vector is nil, then meta data takes effect
+  26. if option map/vector is nil, then meta data takes effect
       (structure-as (with-meta {:a s/Str :b s/Str} {ALTER-STRUCT {[:a :AA] true, [:c :cc] true}}) {:b \"b\" :c 1} nil) => {:AA nil :b \"b\" :cc 1}
-  25. but empty option map/vector will disable the meta data
+  27. but empty option map/vector will disable the meta data
       (structure-as (with-meta {:a s/Str :b s/Str} {ALTER-STRUCT {[:a :AA] true, [:c :cc] true}}) {:b \"b\" :c 1} {}) => {:a nil :b \"b\"}
   "
   ([structure-schema from opts]

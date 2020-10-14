@@ -52,6 +52,24 @@
               (fact "Can rename a list of keys"
                     (structure-as {RENAME [:a :aa :b :bb] :c :_} {:b "b" :c 1}) => {:aa nil :bb "b" :c 1}
                     (structure-as {:a {RENAME [:b :bb]}} {:a {:b "b" :c 1}} ) => {:a {:bb "b"}}
+                    (structure-as {RENAME ^:optional [:a :aa :b :bb]} {:b 2}) => {:bb 2}
+                    )
+              (fact "It returns nil if the source value is nil"
+                    (structure-as {:a :_ :b {:c :_} ADD [:d :e]} nil) => nil
+                    (structure-as {(s/optional-key :a) :_} nil) => nil
+                    (structure-as {^:optional [:a :a] :_} nil) => nil
+                    (structure-as {[:a :aa] :_} nil) => nil
+                    (structure-as {RENAME [:a :aa :b :bb]} nil) => nil
+                    (structure-as {RENAME ^:optional [:a :aa :b :bb]} nil) => nil
+                    )
+              (fact "It returns a map containing the required key with value nil if the source value is a map which contains value nil of the required key"
+                    (structure-as {:a :_ :b {:c :_} ADD [:d :e]} {}) => {:a nil :b nil :d nil :e nil}
+                    (structure-as {:a :_ :b {:c :_} ADD [:d :e]} {:a nil :b nil :d nil :e nil}) => {:a nil :b nil :d nil :e nil}
+                    (structure-as {(s/optional-key :a) :_} {}) => {}
+                    (structure-as {^:optional [:a :a] :_} {}) => {}
+                    (structure-as {RENAME [:a :aa :b :bb]} {}) => {:aa nil :bb nil}
+                    (structure-as {RENAME [:a :aa :b :bb]} {:a nil :b nil}) => {:aa nil :bb nil}
+                    (structure-as {RENAME ^:optional [:a :aa :b :bb]} {}) => {}
                     )
               (fact "Can remove keys"
                     (structure-as {(remove-key :b) :_} {:b "b" :c 1}) => {:c 1}
@@ -229,7 +247,7 @@
                            '({:b {:c 1 :d 2}}
                              {:a 3}
                              )
-                           ) => '({:b {:c 1}} {:aa 3 :b {:c nil}})
+                           ) => '({:b {:c 1}} {:aa 3 :b nil})
              (structure-as (with-meta {:a s/Int :b {:c s/Int :d s/Int}} {ALTER-STRUCT {[:a :aa] true, [:b :bb] {^:optional [:d :dd] true}}})
                            {:a 1 :b {:c 2}}
                            ) => {:aa 1 :bb {}}
