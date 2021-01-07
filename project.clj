@@ -17,4 +17,6 @@
                                   ]}}
   :source-paths ["src/clj"]
   :java-source-paths ["src/java"]
+  :deploy-repositories [["releases"  {:sign-releases false :url "https://clojars.org/repo"}]
+                        ["snapshots" {:sign-releases false :url "https://clojars.org/repo"}]]
   )
