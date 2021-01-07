@@ -36,9 +36,29 @@
    }
   )
 
+(defn- read-from-edn [s]
+  (letfn [(is-java-time-instant? [t v]
+            ; (prn-str java.time.Instant) will generate a string like "#object[java.time.Instant 0x70d987ac \"2021-01-07T08:55:04.352Z\"]\n"
+            (and (= t 'object)
+                 (vector? v)
+                 (= (first v) 'java.time.Instant)
+                 )
+            )
+          ]
+    (edn/read-string {:default (fn [t v]
+                                 (if (is-java-time-instant? t v)
+                                   ; parse to java.time.Instant
+                                   (java.time.Instant/parse (nth v 2))
+                                   (throw (RuntimeException. (format "No reader function for tag %s %s" t v)))
+                                   )
+                                 )
+                      } s)
+    )
+  )
+
 (def EDN
-  {:in edn/read-string
-   :out pr-str
+  {:in read-from-edn
+   :out prn-str
    }
   )
 
