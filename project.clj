@@ -1,4 +1,4 @@
-(defproject coders-at-work/ladybird "0.6.3-SNAPSHOT"
+(defproject coders-at-work/ladybird "0.6.3"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
@@ -17,4 +17,6 @@
                                   ]}}
   :source-paths ["src/clj"]
   :java-source-paths ["src/java"]
+  :deploy-repositories [["releases"  {:sign-releases false :url "https://clojars.org/repo"}]
+                        ["snapshots" {:sign-releases false :url "https://clojars.org/repo"}]]
   )
