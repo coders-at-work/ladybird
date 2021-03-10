@@ -7,6 +7,8 @@
               [schema.core :as s]
               )
     (:import [com.fasterxml.jackson.datatype.joda JodaModule]
+             [com.fasterxml.jackson.databind.module SimpleModule]
+             [jsonista.jackson FunctionalSerializer]
              org.joda.time.DateTime
              )
     ; (:import org.joda.time.DateTime)
@@ -18,6 +20,15 @@
     (-> m/default-options
         (assoc-in [:formats "application/json" :opts] {:modules [(JodaModule.)]})
         (assoc-in [:formats "application/json" :decoder-opts :bigdecimals] true)
+        (assoc-in [:formats "application/json" :encoder-opts] {:modules [(doto
+                                                                   (SimpleModule. "Instant")
+                                                                   (.addSerializer
+                                                                     java.time.Instant
+                                                                     (FunctionalSerializer.
+                                                                       (fn [t gen]
+                                                                           (let [formatter (.toFormatter
+                                                                                             (.appendInstant (java.time.format.DateTimeFormatterBuilder. ) 3))]
+                                                                             (.writeString gen (.format formatter t)))))))]})
         #_(assoc-in [:formats "application/json" :encoder-opts :date-format] "yyyy-MM-dd"))))
 
 ;; swagger schema
