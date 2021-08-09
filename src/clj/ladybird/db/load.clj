@@ -21,8 +21,20 @@
       (= :jndi-mysql dbms-type) (-> (dissoc db-def :dbms-type) (assoc :delimiters "`"))
       (= :jndi dbms-type) (dissoc db-def :dbms-type)
       (nil? db-helper) (throw (e/sys-error :load-db-def-failed "Unknown dbms type" dbms-type))
-      :others (let [passowrd (if decrypter (decrypter password) password)]
-                (-> (dissoc db-def :dbms-type :decrypter) (assoc :password password) db-helper)))))
+      :others (let [passwrd (cond (and password decrypter) (decrypter password)
+                                  password password
+                                  )]
+                (-> (if passwrd
+                      (assoc db-def :password passwrd)
+                      (dissoc db-def :password)
+                      )
+                    (dissoc :dbms-type :decrypter)
+                    db-helper
+                    )
+                )
+      )
+    )
+  )
 
 (defn load-db-file
   "
