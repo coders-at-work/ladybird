@@ -9,6 +9,14 @@
 ;; construct sql
 (def raw kc/raw)
 
+(defn- get-subprotocol[]
+  (-> (dbc/get-cur-conn) :original-conn-def :subprotocol)
+  )
+
+(defn- is-sqlserver? []
+  (= "sqlserver" (get-subprotocol))
+  )
+
 ;; access db
 (defn select
   "database select operation
@@ -67,22 +75,20 @@
   ([table data]
    (insert! table data {}))
   ([table data {:keys [fields] :as spec}]
-   (let [subprotocol (-> (dbc/get-cur-conn) :original-conn-def :subprotocol)]
-     (if (and (= "sqlserver" subprotocol)
-              (not (map? data)))
-       (do ;partition data to avoid the limit of the count of sql parameters
-           (let [field-count (if fields
-                               (count fields)
-                               (-> (first data) keys count))
-                 record-count (-> (* 2100 0.9) (/ field-count) int)
-                 grouped-data (partition-all record-count data)
-                 ]
-             (doseq [group grouped-data]
-               (dbk/insert! table group (assoc-spec-with-db spec)))
-             )
+   (if (and (is-sqlserver?)
+            (not (map? data)))
+     (do ;partition data to avoid the limit of the count of sql parameters
+         (let [field-count (if fields
+                             (count fields)
+                             (-> (first data) keys count))
+               record-count (-> (* 2100 0.9) (/ field-count) int)
+               grouped-data (partition-all record-count data)
+               ]
+           (doseq [group grouped-data]
+             (dbk/insert! table group (assoc-spec-with-db spec)))
            )
-       (dbk/insert! table data (assoc-spec-with-db spec))
-       )
+         )
+     (dbk/insert! table data (assoc-spec-with-db spec))
      )
    )
   )
