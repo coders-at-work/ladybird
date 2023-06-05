@@ -9,14 +9,6 @@
 ;; construct sql
 (def raw kc/raw)
 
-(defn- get-subprotocol[]
-  (-> (dbc/get-cur-conn) :original-conn-def :subprotocol)
-  )
-
-(defn- is-sqlserver? []
-  (= "sqlserver" (get-subprotocol))
-  )
-
 ;; access db
 (defn select
   "database select operation
@@ -78,7 +70,7 @@
    (if (some? fields)
      (assert (not-empty fields) "Invalide fields %s", fields)
      )
-   (if (and (is-sqlserver?)
+   (if (and (dbc/is-sqlserver?)
             (sequential? data))
      (do ;partition data to avoid the limit of the count of sql parameters
          (let [field-count (if fields
