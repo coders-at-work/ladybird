@@ -71,7 +71,9 @@
      (assert (not-empty fields) (format "Invalide fields %s", fields))
      )
    (if (and (dbc/is-sqlserver?)
-            (sequential? data))
+            (sequential? data)
+            (> (count data) 1)
+            )
      (do ;partition data to avoid the limit of the count of sql parameters
          (let [field-count (if fields
                              (count fields)
