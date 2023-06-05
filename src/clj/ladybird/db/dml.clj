@@ -75,12 +75,16 @@
   ([table data]
    (insert! table data {}))
   ([table data {:keys [fields] :as spec}]
+   (if (some? fields)
+     (assert (not-empty fields) "Invalide fields %s", fields)
+     )
    (if (and (is-sqlserver?)
-            (not (map? data)))
+            (sequential? data))
      (do ;partition data to avoid the limit of the count of sql parameters
          (let [field-count (if fields
                              (count fields)
                              (-> (first data) keys count))
+               _ (assert (pos? field-count) (format "Invalid field-count %d", field-count))
                record-count (-> (* 2100 0.9) (/ field-count) int)
                grouped-data (partition-all record-count data)
                ]
