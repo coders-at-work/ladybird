@@ -57,17 +57,37 @@
     (dbk/select table where (assoc-spec-with-db spec))))
 
 (defn insert!
-  "insert database record 
-   Params:
-       table -- same as 'select' 
-       data -- can be a map, or a seq of maps
-       spec -- see also 'select'
-   Return:
-       same as korma.core/insert"
+  "insert database record
+  Params:
+  table -- same as 'select'
+  data -- can be a map, or a seq of maps
+  spec -- see also 'select'
+  Return:
+  same as korma.core/insert"
   ([table data]
    (insert! table data {}))
   ([table data {:keys [fields] :as spec}]
-    (dbk/insert! table data (assoc-spec-with-db spec))))
+   (if (some? fields)
+     (assert (not-empty fields) (format "Invalide fields %s", fields))
+     )
+   (if (and (dbc/is-sqlserver?)
+            (sequential? data))
+     (do ;partition data to avoid the limit of the count of sql parameters
+         (let [field-count (if fields
+                             (count fields)
+                             (-> (first data) keys count))
+               _ (assert (pos? field-count) (format "Invalid field-count %d", field-count))
+               record-count (-> (* 2100 0.9) (/ field-count) int)
+               grouped-data (partition-all record-count data)
+               ]
+           (doseq [group grouped-data]
+             (dbk/insert! table group (assoc-spec-with-db spec)))
+           )
+         )
+     (dbk/insert! table data (assoc-spec-with-db spec))
+     )
+   )
+  )
 
 (defn update!
   "update database record

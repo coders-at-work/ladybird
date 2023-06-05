@@ -51,3 +51,12 @@
   "Init the main db connection(the db connection named :main)."
   [db-def-map]
   (init-db :main db-def-map))
+
+(defn get-subprotocol[]
+  (-> (get-cur-conn) :original-conn-def :subprotocol)
+  )
+
+(defn is-sqlserver? []
+  (= "sqlserver" (get-subprotocol))
+  )
+
