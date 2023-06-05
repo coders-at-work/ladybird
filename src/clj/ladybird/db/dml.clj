@@ -68,7 +68,7 @@
    (insert! table data {}))
   ([table data {:keys [fields] :as spec}]
    (if (some? fields)
-     (assert (not-empty fields) "Invalide fields %s", fields)
+     (assert (not-empty fields) (format "Invalide fields %s", fields))
      )
    (if (and (dbc/is-sqlserver?)
             (sequential? data))
