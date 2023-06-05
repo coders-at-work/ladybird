@@ -80,6 +80,8 @@
                record-count (-> (* 2100 0.9) (/ field-count) int)
                grouped-data (partition-all record-count data)
                ]
+           ; NOTICE: doseq will return nil.
+           ; Change to return same data type as inserting sequential data into Non-SQLServer DB later
            (doseq [group grouped-data]
              (dbk/insert! table group (assoc-spec-with-db spec)))
            )
