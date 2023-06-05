@@ -70,23 +70,21 @@
    (if (some? fields)
      (assert (not-empty fields) (format "Invalide fields %s", fields))
      )
-   (let [grouped-data (if (sequential? data)
-                        (if (dbc/is-sqlserver?)
-                          ;partition data to avoid the limit of the count of sql parameters
-                          (let [field-count (if fields
-                                              (count fields)
-                                              (-> (first data) keys count))
-                                _ (assert (pos? field-count) (format "Invalid field-count %d", field-count))
-                                record-count (-> (* 2100 0.9) (/ field-count) int)
-                                ]
-                            (partition-all record-count data))
-                          data ; sequential data, but not sqlserver, use as is
-                          )
-                        [data] ; wrap into sequential data
-                        )
-         ]
-     (doseq [group grouped-data]
-       (dbk/insert! table group (assoc-spec-with-db spec)))
+   (if (and (dbc/is-sqlserver?)
+            (sequential? data))
+     (do ;partition data to avoid the limit of the count of sql parameters
+         (let [field-count (if fields
+                             (count fields)
+                             (-> (first data) keys count))
+               _ (assert (pos? field-count) (format "Invalid field-count %d", field-count))
+               record-count (-> (* 2100 0.9) (/ field-count) int)
+               grouped-data (partition-all record-count data)
+               ]
+           (doseq [group grouped-data]
+             (dbk/insert! table group (assoc-spec-with-db spec)))
+           )
+         )
+     (dbk/insert! table data (assoc-spec-with-db spec))
      )
    )
   )
