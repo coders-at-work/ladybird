@@ -67,7 +67,7 @@
   ([table data]
    (insert! table data {}))
   ([table data {:keys [fields] :as spec}]
-   (if (some? fields)
+   (when (some? fields)
      (assert (not-empty fields) (format "Invalide fields %s", fields))
      )
    (if (and (dbc/is-sqlserver?)
@@ -88,7 +88,9 @@
              (dbk/insert! table group (assoc-spec-with-db spec)))
            )
          )
-     (dbk/insert! table data (assoc-spec-with-db spec))
+     (when (not-empty data)
+       (dbk/insert! table data (assoc-spec-with-db spec))
+       )
      )
    )
   )
