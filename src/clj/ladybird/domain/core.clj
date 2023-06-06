@@ -204,9 +204,13 @@
        (->> (map #(if (vector? %) (data-field %) %) fields-def) (select-keys rec)))
 
 (defn add-record! [{:keys [table-name fields db-maintain-fields add-fixed converters] :as spec} & recs]
-  (let [recs (map #(-> (apply dissoc (retain-fields fields %) db-maintain-fields) (merge add-fixed)) recs)
-        ]
-    (apply dc/add! table-name {:fields fields :converters converters} recs)))
+  (when (not-empty recs)
+    (let [recs (map #(-> (apply dissoc (retain-fields fields %) db-maintain-fields) (merge add-fixed)) recs)
+          ]
+      (apply dc/add! table-name {:fields fields :converters converters} recs)
+      )
+    )
+  )
 
 (defn- generate-add-fn [{:keys [domain-name add-fn-meta] :as domain-meta}]
   (let [[add-fn-name add-fn-doc-string] add-fn-meta
