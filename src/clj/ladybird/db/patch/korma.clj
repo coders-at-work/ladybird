@@ -4,7 +4,8 @@
               [korma.sql.engine :as eng]
               [korma.sql.fns :as fns]
               [korma.sql.utils :as ku]
-              [clojure.string :as clj-str]))
+              [clojure.string :as clj-str]
+              [ladybird.util.core :as luc]))
 
 ;; debugging
 (def korma-exec-sql @#'kdb/exec-sql)
@@ -193,7 +194,85 @@
        (let [do-join-fns (map #(create-single-join-fn % joins db) join-with)]
          (apply comp (reverse do-join-fns))))
 
+(defn add-nolock-sql [sql-str]
+  (let [sql (clojure.string/replace sql-str #"(FROM )([^\"]*)([\"][^\"]+[\"])" "$1$2$3 WITH (nolock) ")]
+    #_(log/debug :nolock-sql sql)
+    sql
+  )
+)
+
+(luc/def-bindable modify-sql-str-fn identity)
+
+(defmacro with-sql-chain
+  "
+   Executes the body with the given functions chained to modify the sql string of the select statement before the statement being executed. Multiple calls to this macro can be nested. In this situation, the modification of the inner most call takes precedence. While in a sigle call, the left most function in the chain will be executed first.
+
+   Params:
+      fn-or-fns -- can be a function which accepts the original sql string and returs a new sql string, or a vector of functions to modify the sql string. When it's a vector, the functions will be chained in the order they are in the vector from left to right.
+   
+      body -- the body to be executed.
+
+   Usage:
+      (with-sql-chain a-fn
+        (domain-query....))  ; uses a-fn to modify the sql string
+   
+      (with-sql-chain [a-fn b-fn]
+        (domain-query....))  ; the sql string will first be modified by a-fn, then b-fn
+
+      ;; nested calls
+      (with-sql-chain c-fn
+        (do-some-query) ; Here the chain only contains c-fn. The sql string will be modified by c-fn only.
+   
+        (with-sql-chain [a-fn b-fn]
+          (domain-query....)  ; Here the chain contains all three functions. The sql string will first be modified by a-fn, then b-fn, then c-fn.
+          )
+   
+        (do-other-query) ; Here the chain only contains c-fn. The sql string will be modified by c-fn only.
+      )
+   "
+  [fn-or-fns & body]
+  (let [fns (if (vector? fn-or-fns) (reverse fn-or-fns) [fn-or-fns])]
+    `(with-modify-sql-str-fn (comp (modify-sql-str-fn) ~@fns)
+      ~@body)))
+
+(defmacro with-nolock
+  "
+   Add nolock part for the sql statement.
+
+   Usage:
+      (with-nolock
+        (domain-query....))  ; the sql string will be modified by add-nolock-sql only
+   
+      (with-nolock
+        (with-sql-chain [a-fn b-fn]
+          (domain-query....)))  ; the sql string will first be modified by a-fn, then b-fn, then add-nolock-sql
+   
+      (with-sql-chain [a-fn b-fn]
+        (with-nolock
+          (domain-query....)))  ; the sql string will first be modified by add-nolock-sql, then a-fn, then b-fn
+
+  "
+  [& body]
+  `(with-sql-chain add-nolock-sql ~@body))
+
 (defn select
+  [ent where-clause {:keys [fields join-with joins aggregate modifier order offset limit group-by db] :as spec}]
+  (let [ent (ladybird.db.patch.korma/construct-korma-entity ent :main db)]
+    (binding [korma.core/*exec-mode* :query]
+      (let [k-query (korma.core/exec (#'ladybird.db.patch.korma/construct-query ent where-clause spec))
+            sql-str (:sql-str k-query)
+            sql-str ((modify-sql-str-fn) sql-str)
+            query (assoc k-query :sql-str sql-str)
+            ]
+            #_(:sql-str query)
+        (let [results (korma.db/do-query query)]
+          (#'korma.core/apply-transforms query (#'korma.core/apply-posts query results)))
+        )
+      )
+    )
+  )
+
+#_(defn select
   "Params:
       spec -- a map contains select specification, can contain the following keys:
           :fields -- same as korma.core
