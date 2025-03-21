@@ -58,7 +58,7 @@
 
 (def EDN
   {:in read-from-edn
-   :out prn-str
+   :out pr-str
    }
   )
 
