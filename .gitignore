@@ -17,3 +17,5 @@ Icon?
 filenametags
 /.nrepl-port
 /tmp
+.clj-kondo/
+.lsp/
