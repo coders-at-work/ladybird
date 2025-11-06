@@ -11,6 +11,7 @@
                  :oracle kdb/oracle
                  :mysql kdb/mysql
                  :msaccess kdb/msaccess
+                 :postgres kdb/postgres
                  :teradata teradata/teradata
                  })
 
