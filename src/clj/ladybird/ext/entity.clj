@@ -5,11 +5,13 @@
               )
     )
 
-(defn change-add-fn [add-fn]
+(defn change-add-fn [add-fn primary-key]
   (fn [& args]
-      (:generated_keys (apply add-fn args))
-      )
-  )
+    (let [result (apply add-fn args)]
+      (or
+       (:generated_keys result)
+       (get result primary-key))
+      )))
 
 (defn- field-to-field-name [field]
   (name (if (vector? field) (second field) field)))
@@ -67,5 +69,5 @@
      (defdomain ~domain-name ~@args)
      (->
       (ns-resolve ~'*ns* (-> (:add-fn-meta ~domain-name) first symbol))
-      (alter-var-root change-add-fn))
+      (alter-var-root change-add-fn (:primary-key ~domain-name)))
      (def-entity-fns ~domain-name)))
