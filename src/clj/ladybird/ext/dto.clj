@@ -42,6 +42,7 @@
                                           dc/JAVA-TIME-INSTANT java.time.Instant
                                           dc/EDN s/Any
                                           dc/MSSQL-ROWVERSION Long
+                                          dc/POSTGRES-XMIN Integer
                                           ; c/JODA-TIMESTAMP DateTime
                                           dc/BOOL s/Bool
                                           dc/DATETIME Date

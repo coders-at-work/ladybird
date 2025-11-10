@@ -66,4 +66,8 @@
      {:in #(-> % ByteBuffer/wrap .getLong)
      :out identity})
 
+(def POSTGRES-XMIN
+     {:in #(-> % .getValue Integer.)
+     :out int})
+
 ;; encryption

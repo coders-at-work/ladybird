@@ -11,40 +11,32 @@
       )
   )
 
+(defn- field-to-field-name [field]
+  (name (if (vector? field) (second field) field)))
+
 (defn- gen-field-fns
   ""
   [field]
-  (let [field-name (name field)
-        assoc-field-name (str "assoc-" field-name)
-        ]
+  (let [field-name (field-to-field-name field)
+        assoc-field-name (str "assoc-" field-name)]
     `(do
        (defn ~(symbol field-name)
          [~'ent]
-         (~field ~'ent)
-         )
+         (~field ~'ent))
        (defn ~(symbol assoc-field-name)
          [~'ent ~'v]
-         (assoc ~'ent ~field ~'v)
-         )
-       )
-    )
-  )
+         (assoc ~'ent ~field ~'v)))))
 
 (defn- gen-enum-predicates
   ""
   [entity entity-converters]
   (let [enum-fields (->>
-                      (filter (fn [[f c]] (enum/enum? c)) entity-converters)
-                      (map first)
-                      )]
+                     (filter (fn [[f c]] (enum/enum? c)) entity-converters)
+                     (map first))]
     (map
-      (fn [f]
-          `(def-enum-predicates ~entity ~f)
-          )
-      enum-fields
-      )
-    )
-  )
+     (fn [f]
+       `(def-enum-predicates ~entity ~f))
+     enum-fields)))
 
 (defn- gen-create-fn
   ""
@@ -52,29 +44,20 @@
   (let [ignore-fields (set db-maintain-fields)
         ignore-fields (apply conj ignore-fields (keys add-fixed))
         init-params (->> (filter #(not (ignore-fields %)) fields)
-                         (mapv #(-> (name %) symbol))
-                         )
+                         (mapv #(-> (field-to-field-name %) symbol)))
         function-name (str "create-" (-> (name entity-sym) lstr/clj-case))
-        function-body (->> (map #(vector (keyword %) %) init-params) (into {}))
-        ]
+        function-body (->> (map #(vector (keyword %) %) init-params) (into {}))]
     `(defn ~(symbol function-name)
        ~[{:keys init-params}]
-       ~function-body
-       )
-    )
-  )
+       ~function-body)))
 
 (defmacro def-entity-fns
   [entity]
-  (let [{:keys [converters fields db-maintain-fields add-fixed]} (eval entity)
-        ]
+  (let [{:keys [converters fields db-maintain-fields add-fixed]} (eval entity)]
     `(do
        ~@(map gen-field-fns fields)
        ~@(gen-enum-predicates entity converters)
-       ~(gen-create-fn entity fields db-maintain-fields add-fixed)
-       )
-    )
-  )
+       ~(gen-create-fn entity fields db-maintain-fields add-fixed))))
 
 (defmacro defentity
   "A thin wrapper of ladybird.domain.core/defdomain. Accepts same arguments as defdomain. But it changes the implementation of add record function so that the function returns the generated id directly instead of a map. It also generates enum predicates for the domain. At last, it generates a function to create a new instance of the domain. This instance contains all fields except for db-maintain-fields and add-fixed fields. You can pass a map to this function. All fields you don't specify in the argument map will have a nil value.
@@ -83,9 +66,6 @@
   `(do
      (defdomain ~domain-name ~@args)
      (->
-       (ns-resolve ~'*ns* (-> (:add-fn-meta ~domain-name) first symbol))
-       (alter-var-root change-add-fn)
-       )
-     (def-entity-fns ~domain-name)
-     )
-  )
+      (ns-resolve ~'*ns* (-> (:add-fn-meta ~domain-name) first symbol))
+      (alter-var-root change-add-fn))
+     (def-entity-fns ~domain-name)))
