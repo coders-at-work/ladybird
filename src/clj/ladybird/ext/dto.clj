@@ -81,8 +81,9 @@
 
 (defn generate-schema-from-one-entity
   ""
-  [{:keys [converters] entity-fields :fields validators :validate :as entity} {:keys [includes excludes fields-spec] :as opts}]
-  (let [schema-fields (or includes
+  [{:keys [converters fields] validators :validate :as entity} {:keys [includes excludes fields-spec] :as opts}]
+  (let [entity-fields (mapv #(if (vector? %) (second %) %) fields)
+        schema-fields (or includes
                           (some->> excludes (apply disj (set entity-fields)) seq)
                           entity-fields
                           )
