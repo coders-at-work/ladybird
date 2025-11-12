@@ -27,6 +27,8 @@
 
 (def STR->DATETIME (composite-converter (when-converter string? datetime-str-to-date) DATETIME))
 
+(def NULLABLE-DATE (nullable-converter (:in DATE) (:out DATE)))
+
 ;; TODO should be STRING-OUT-INT-IN
 (def INT->STRING (when-converter integer? str))
 

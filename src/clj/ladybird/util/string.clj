@@ -62,3 +62,8 @@
 (defn datetime-str-to-date [str]
   (.parse datetime-format str))
 
+(defn date-to-date-str [^Date d]
+  (.format date-format d))
+
+(defn date-str-to-date [str]
+  (.parse date-format str))

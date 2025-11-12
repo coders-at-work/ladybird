@@ -47,6 +47,7 @@
                                           dc/BOOL s/Bool
                                           dc/DATETIME Date
                                           dc/DATE Date
+                                          dc/NULLABLE-DATE ladybird-schema/date-str
                                           dc/DECIMAL BigDecimal
                                           dc/STR->DATETIME s/Str
                                           dc/INT->STRING s/Int
