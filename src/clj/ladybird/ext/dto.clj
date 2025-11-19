@@ -46,7 +46,7 @@
                                           ; c/JODA-TIMESTAMP DateTime
                                           dc/BOOL s/Bool
                                           dc/DATETIME Date
-                                          dc/DATE Date
+                                          dc/DATE ladybird-schema/date-str
                                           dc/NULLABLE-DATE ladybird-schema/date-str
                                           dc/DECIMAL BigDecimal
                                           dc/STR->DATETIME s/Str
