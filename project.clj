@@ -1,4 +1,4 @@
-(defproject coders-at-work/ladybird "0.8.0-SNAPSHOT"
+(defproject coders-at-work/ladybird "0.8.1-SNAPSHOT"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/tools.logging "0.3.1"]
                  [korma "0.4.2"]
                  [metosin/reitit "0.4.2"]
+                 [clojure.java-time "1.4.3"]
                  ;; json
                  [com.fasterxml.jackson.datatype/jackson-datatype-joda "2.11.0"]
                  ]
