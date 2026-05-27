@@ -51,6 +51,7 @@
                                           dc/DECIMAL BigDecimal
                                           dc/STR->DATETIME s/Str
                                           dc/INT->STRING s/Int
+                                          dc/POSTGRES-JSONB s/Any
                                           }
                        ]
                    (converter-schemas converter)

@@ -2,10 +2,12 @@
     (:require [ladybird.data.converter-core :refer :all]
               [ladybird.util.string :refer (datetime-str-to-date)]
               [clojure.edn :as edn]
+              [clojure.data.json :as json]
               )
     (:import (java.util Date Calendar)
              java.nio.ByteBuffer
              java.sql.Timestamp
+             (org.postgresql.util PGobject)
              ))
 
 (defn- truncate-time [^java.util.Date d]
@@ -73,3 +75,12 @@
      :out int})
 
 ;; encryption
+
+(def POSTGRES-JSONB
+  {:in #(some-> %
+                (cond-> (instance? PGobject %) .getValue)
+                (json/read-str :key-fn keyword))
+   :out #(when (some? %)
+           (doto (PGobject.)
+             (.setType "jsonb")
+             (.setValue (json/write-str %))))})
